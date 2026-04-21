@@ -1,0 +1,30 @@
+{
+  "name": "contract-ocr-agent",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev":       "tsx watch src/api/server.ts",
+    "build":     "tsc",
+    "start":     "node dist/api/server.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "openai":      "^5.22.1",
+    "chromadb":    "^1.10.3",
+    "pdf-parse":   "^1.1.1",
+    "express":     "^5.2.0",
+    "multer":      "^2.0.0",
+    "zod":         "^3.24.2",
+    "pino":        "^10.1.0",
+    "pino-pretty": "^13.0.0",
+    "uuid":        "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/express":    "^5.0.2",
+    "@types/multer":     "^1.4.12",
+    "@types/pdf-parse":  "^1.1.4",
+    "@types/node":       "^22.15.0",
+    "tsx":               "^4.19.3",
+    "typescript":        "^5.8.3"
+  }
+}

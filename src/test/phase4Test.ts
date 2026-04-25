@@ -6,6 +6,7 @@ import { runOrchestrator }    from '../agent/orchestrator.js'
 import { runInputGuardrail }  from '../guardrails/inputGuardrail.js'
 import { checkLoopGuardrail } from '../guardrails/loopGuardrail.js'
 import { enforceOutputSchema, contentPolicyFilter } from '../guardrails/outputGuardrail.js'
+import { saveOutput }         from '../local/outputSaver.js'
 import type { AgentState }    from '../types/index.js'
 
 // ── Input Guardrail tests ────────────────────────────────────────────────────
@@ -108,6 +109,9 @@ async function testAgentPipeline() {
   console.log(`  Clauses : ${(result.clauses as unknown[]).length}`)
   console.log(`  Risks   : ${(result.risks as unknown[]).length}`)
   console.log(`  Summary : ${result.summary.slice(0, 100)}...`)
+
+  const savedPath = await saveOutput(result, docId, 'test-report')
+  console.log(`  Saved   → ${savedPath}`)
   console.log('PASS — agent returned structured output')
 }
 

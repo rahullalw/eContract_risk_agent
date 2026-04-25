@@ -37,15 +37,18 @@ export async function chunkAndEmbed(ocrResult: OcrResult, docId: string): Promis
   const rawChunks = splitIntoChunks(ocrResult.text)
   const chunks: TextChunk[] = []
 
+  const embResp = await geminiClient.embeddings.create({ 
+    model: EMBEDDING_MODEL, 
+    input: rawChunks 
+  });
+
   for (let i = 0; i < rawChunks.length; i++) {
-    const text = rawChunks[i]
-    const embResp = await geminiClient.embeddings.create({ model: EMBEDDING_MODEL, input: text })
     chunks.push({
       chunkId:    `${docId}-chunk-${i}`,
       docId,
-      text,
-      sectionTag: detectSectionTag(text),
-      embedding:  embResp.data[0].embedding,
+      text:       rawChunks[i],
+      sectionTag: detectSectionTag(rawChunks[i]),
+      embedding:  embResp.data[i].embedding,
     })
   }
 

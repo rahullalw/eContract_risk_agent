@@ -16,6 +16,7 @@ import {
 } from '../guardrails/outputGuardrail.js'
 import { LoopGuardrailError }  from '../guardrails/loopGuardrail.js'
 import { logSpan }             from '../observability/telemetry.js'
+import { saveOutput }          from '../local/outputSaver.js'
 
 const upload = multer({
   storage:    multer.memoryStorage(),
@@ -63,6 +64,13 @@ analyzeRouter.post('/analyze', upload.single('contract'), async (req: Request, r
     if (!cove.verified) {
       console.warn('[CoVe] Unverified citations:', cove.issues)
     }
+
+    const savedPath = await saveOutput(
+      { ...report, _meta: { coveVerified: cove.verified, coveIssues: cove.issues } },
+      docId,
+      'report',
+    )
+    console.log(`[output] Saved → ${savedPath}`)
 
     await logSpan({
       tool:       'full_pipeline',

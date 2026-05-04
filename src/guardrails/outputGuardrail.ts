@@ -11,6 +11,39 @@ export class OutputGuardrailError extends Error {
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function textFrom(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+function summarizeClause(value: Record<string, unknown>): string {
+  const existing = textFrom(value.summary)
+  if (existing) return existing.slice(0, 300)
+
+  const rawText = textFrom(value.rawText)
+  if (!rawText) return 'Clause summary unavailable.'
+
+  const firstSentence = rawText
+    .replace(/\s+/g, ' ')
+    .split(/(?<=[.!?])\s+/)[0]
+    .trim()
+
+  return (firstSentence || rawText).slice(0, 300)
+}
+
+function normalizeClauses(clauses: unknown[]): unknown[] {
+  return clauses.map((clause) => {
+    if (!isRecord(clause)) return clause
+    return {
+      ...clause,
+      summary: summarizeClause(clause),
+    }
+  })
+}
+
 export function enforceOutputSchema(
   raw:       { clauses: unknown[]; risks: unknown[]; summary: string; agentSteps: number },
   ocrResult: OcrResult,
@@ -21,7 +54,7 @@ export function enforceOutputSchema(
     analysedAt:    new Date().toISOString(),
     pages:         ocrResult.pages,
     ocrConfidence: ocrResult.confidence,
-    clauses:       raw.clauses,
+    clauses:       normalizeClauses(raw.clauses),
     risks:         raw.risks,
     summary:       raw.summary,
     agentSteps:    raw.agentSteps,

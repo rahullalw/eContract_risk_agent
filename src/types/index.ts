@@ -58,7 +58,7 @@ export const RiskFlagSchema = z.object({
   pageNumber:     z.number(),
   level:          RiskLevelSchema,
   description:    z.string().max(400),
-  precedent:      z.string().optional(),
+  precedent:      z.string().nullable().optional(),
   recommendation: z.string().max(300),
 })
 export type RiskFlag = z.infer<typeof RiskFlagSchema>

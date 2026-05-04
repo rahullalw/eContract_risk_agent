@@ -7,9 +7,7 @@ export async function vectorSearch(
   sectionTag?: string,
 ): Promise<Array<{ text: string; sectionTag: string; score: number }>> {
   const embResp = await geminiClient.embeddings.create({ model: EMBEDDING_MODEL, input: query })
-  const results = await queryChroma(embResp.data[0].embedding, topK)
+  const results = await queryChroma(embResp.data[0].embedding, topK, sectionTag)
 
-  return sectionTag
-    ? results.filter(r => r.sectionTag === sectionTag)
-    : results
+  return results
 }

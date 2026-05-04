@@ -65,6 +65,11 @@ export const TOOL_DEFINITIONS: ChatCompletionTool[] = [
             },
           },
           jurisdiction: { type: 'string' },
+          precedents: { 
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Relevant precedents found via vector_search to consider for risk scoring.'
+          },
         },
         required: ['clauses'],
       },

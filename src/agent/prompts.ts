@@ -11,7 +11,25 @@ STRICT RULES:
 
 FINAL OUTPUT FORMAT:
 {
-  "clauses":  [ ...clause objects... ],
-  "risks":    [ ...risk flag objects... ],
+  "clauses":  [
+    {
+      "clauseId": "string",
+      "type": "termination | liability | indemnification | ip_ownership | confidentiality | payment | dispute_resolution | force_majeure | governing_law | other",
+      "rawText": "string",
+      "sectionId": "string",
+      "pageNumber": 1,
+      "summary": "required concise clause summary, max 300 chars"
+    }
+  ],
+  "risks":    [
+    {
+      "clauseId": "string",
+      "sectionId": "string",
+      "pageNumber": 1,
+      "level": "critical | high | medium | low",
+      "description": "string, max 400 chars",
+      "recommendation": "string, max 300 chars"
+    }
+  ],
   "summary":  "concise risk profile summary, max 800 chars"
 }`

@@ -4,7 +4,7 @@ import { TOOL_DEFINITIONS }                             from './toolRegistry.js'
 import { clauseClassify }                               from '../tools/clauseClassify.js'
 import { vectorSearch }                                 from '../tools/vectorSearch.js'
 import { riskScore }                                    from '../tools/riskScore.js'
-import { checkLoopGuardrail, LoopGuardrailError }       from '../guardrails/loopGuardrail.js'
+import { checkLoopGuardrail, LoopGuardrailError, CircularToolCallError }       from '../guardrails/loopGuardrail.js'
 import { logSpan }                                      from '../observability/telemetry.js'
 import type { AgentState, ToolCall, OcrResult }         from '../types/index.js'
 
@@ -23,6 +23,7 @@ async function dispatchTool(call: ToolCall, state: AgentState): Promise<unknown>
       return riskScore(
         a['clauses'] as Parameters<typeof riskScore>[0],
         (a['jurisdiction'] as string | undefined) ?? 'IN',
+        (a['precedents'] as string[] | undefined) ?? []
       )
     default:
       throw new Error(`Unknown tool: ${call.name}`)
@@ -111,13 +112,12 @@ export async function runOrchestrator(
       let args: Record<string, unknown>
       try { args = JSON.parse(fn.arguments) } catch { args = {} }
 
-      checkLoopGuardrail(state, fn.name, fn.arguments)
-
       const start = Date.now()
       let result: unknown
       let toolError: string | null = null
 
       try {
+        checkLoopGuardrail(state, fn.name, fn.arguments)
         result = await dispatchTool({ id: tc.id, name: fn.name, args }, state)
       } catch (err) {
         if (err instanceof LoopGuardrailError) throw err

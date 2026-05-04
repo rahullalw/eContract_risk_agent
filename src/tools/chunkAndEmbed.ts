@@ -37,6 +37,8 @@ export async function chunkAndEmbed(ocrResult: OcrResult, docId: string): Promis
   const rawChunks = splitIntoChunks(ocrResult.text)
   const chunks: TextChunk[] = []
 
+  if (rawChunks.length === 0) return chunks;
+
   const embResp = await geminiClient.embeddings.create({ 
     model: EMBEDDING_MODEL, 
     input: rawChunks 

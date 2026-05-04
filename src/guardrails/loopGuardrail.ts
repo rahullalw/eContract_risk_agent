@@ -8,6 +8,13 @@ export class LoopGuardrailError extends Error {
   }
 }
 
+export class CircularToolCallError extends Error {
+  constructor(reason: string) {
+    super(`[CircularToolCall] ${reason}`)
+    this.name = 'CircularToolCallError'
+  }
+}
+
 export function checkLoopGuardrail(
   state:    AgentState,
   toolName: string,
@@ -29,7 +36,7 @@ export function checkLoopGuardrail(
     .slice(0, 16)
 
   if (state.stepHashes.has(stepHash)) {
-    throw new LoopGuardrailError(`Circular tool call detected: ${toolName} called with identical arguments`)
+    throw new CircularToolCallError(`Circular tool call detected: ${toolName} called with identical arguments`)
   }
   state.stepHashes.add(stepHash)
 }

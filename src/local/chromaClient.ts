@@ -22,12 +22,19 @@ export async function upsertChunks(chunks: TextChunk[]): Promise<void> {
 export async function queryChroma(
   embedding: number[],
   topK = 3,
+  sectionTag?: string,
 ): Promise<Array<{ text: string; sectionTag: string; score: number }>> {
   const col = await getCollection()
-  const res = await col.query({
+  const queryParams: any = {
     queryEmbeddings: [embedding],
     nResults:        topK,
-  })
+  }
+  
+  if (sectionTag) {
+    queryParams.where = { sectionTag }
+  }
+
+  const res = await col.query(queryParams)
 
   const docs      = res.documents[0]   ?? []
   const metas     = res.metadatas[0]   ?? []

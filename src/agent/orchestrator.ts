@@ -5,7 +5,7 @@ import { clauseClassify }                               from '../tools/clauseCla
 import { vectorSearch }                                 from '../tools/vectorSearch.js'
 import { riskScore }                                    from '../tools/riskScore.js'
 import { checkLoopGuardrail, LoopGuardrailError, CircularToolCallError }       from '../guardrails/loopGuardrail.js'
-import { logSpan }                                      from '../observability/telemetry.js'
+import { logSpan, logStep }                             from '../observability/telemetry.js'
 import type { AgentState, ToolCall, OcrResult }         from '../types/index.js'
 
 async function dispatchTool(call: ToolCall, state: AgentState): Promise<unknown> {
@@ -39,6 +39,28 @@ function safeParseJson(content: string): { clauses: unknown[]; risks: unknown[];
   }
 }
 
+function summarizeToolArgs(args: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(args).map(([key, value]) => {
+      if (Array.isArray(value)) return [key, `${value.length} item${value.length === 1 ? '' : 's'}`]
+      if (typeof value === 'string') return [key, value]
+      if (typeof value === 'object' && value !== null) return [key, 'provided']
+      return [key, value]
+    }),
+  )
+}
+
+function summarizeToolResult(result: unknown): Record<string, unknown> {
+  if (Array.isArray(result)) return { results: result.length }
+  if (typeof result === 'object' && result !== null) {
+    const record = result as Record<string, unknown>
+    if (Array.isArray(record['clauses'])) return { clauses: record['clauses'].length }
+    if (Array.isArray(record['risks'])) return { risks: record['risks'].length }
+    if (record['error']) return { error: record['error'] }
+  }
+  return {}
+}
+
 export async function runOrchestrator(
   ocrResult: OcrResult,
   docId:     string,
@@ -63,8 +85,15 @@ export async function runOrchestrator(
     ],
   }
 
+  logStep('Agent initialized', {
+    docId,
+    pages:      ocrResult.pages,
+    confidence: `${Math.round(ocrResult.confidence * 100)}%`,
+  })
+
   while (true) {
     state.iterationCount++
+    logStep('Agent reasoning step started', { docId, step: state.iterationCount })
 
     const completion = await geminiClient.chat.completions.create({
       model:       CHAT_MODEL,
@@ -77,6 +106,11 @@ export async function runOrchestrator(
     if (completion.usage) {
       state.tokenUsed += completion.usage.total_tokens ?? 0
     }
+    logStep('Agent model response received', {
+      docId,
+      step:   state.iterationCount,
+      tokens: state.tokenUsed,
+    })
 
     const msg = completion.choices[0].message
     state.messages.push(msg as any)
@@ -86,6 +120,10 @@ export async function runOrchestrator(
       const parsed = safeParseJson(msg.content ?? '')
 
       if (!parsed) {
+        logStep('Agent final response was not valid JSON; asking once for clean report', {
+          docId,
+          step: state.iterationCount,
+        }, 'warn')
         state.messages.push({ role: 'user', content: 'Output ONLY the JSON report now.' })
         state.iterationCount++
         const retry = await geminiClient.chat.completions.create({
@@ -94,6 +132,12 @@ export async function runOrchestrator(
           temperature: 0,
         })
         const retryParsed = safeParseJson(retry.choices[0].message.content ?? '{}')
+        logStep('Agent retry response parsed', {
+          docId,
+          step:    state.iterationCount,
+          clauses: retryParsed?.clauses.length ?? 0,
+          risks:   retryParsed?.risks.length ?? 0,
+        })
         return {
           clauses:    retryParsed?.clauses    ?? [],
           risks:      retryParsed?.risks      ?? [],
@@ -102,6 +146,12 @@ export async function runOrchestrator(
         }
       }
 
+      logStep('Agent final report parsed', {
+        docId,
+        step:    state.iterationCount,
+        clauses: parsed.clauses.length,
+        risks:   parsed.risks.length,
+      })
       return { ...parsed, agentSteps: state.iterationCount }
     }
 
@@ -111,6 +161,12 @@ export async function runOrchestrator(
       const fn   = (tc as Extract<typeof tc, { type: 'function' }>).function
       let args: Record<string, unknown>
       try { args = JSON.parse(fn.arguments) } catch { args = {} }
+      logStep('Agent requested tool', {
+        docId,
+        step: state.iterationCount,
+        tool: fn.name,
+        ...summarizeToolArgs(args),
+      })
 
       const start = Date.now()
       let result: unknown
@@ -128,7 +184,12 @@ export async function runOrchestrator(
       await logSpan({
         tool:       fn.name,
         durationMs: Date.now() - start,
-        meta:       { docId, iteration: state.iterationCount, error: toolError ?? undefined },
+        meta:       {
+          docId,
+          iteration: state.iterationCount,
+          ...summarizeToolResult(result),
+          error: toolError ?? undefined,
+        },
       })
 
       state.messages.push({

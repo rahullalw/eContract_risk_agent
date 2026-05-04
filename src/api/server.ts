@@ -25,7 +25,7 @@ app.get('/health', (_req, res) => {
 app.use('/api', analyzeRouter)
 
 app.listen(PORT, () => {
-  console.log(`✅ Contract OCR Agent → http://localhost:${PORT}`)
-  console.log(`   POST /api/analyze`)
-  console.log(`   GET  /health`)
+  console.log(`Contract OCR Agent running at http://localhost:${PORT}`)
+  console.log('POST /api/analyze')
+  console.log('GET  /health')
 })

@@ -1,7 +1,6 @@
 import 'dotenv/config'
 import { Router, type Request, type Response } from 'express'
 import multer from 'multer'
-import { randomUUID } from 'crypto'
 
 import { runInputGuardrail }   from '../guardrails/inputGuardrail.js'
 import { ocrLocal }            from '../local/ocrLocal.js'
@@ -15,12 +14,12 @@ import {
   OutputGuardrailError,
 } from '../guardrails/outputGuardrail.js'
 import { LoopGuardrailError }  from '../guardrails/loopGuardrail.js'
-import { logSpan }             from '../observability/telemetry.js'
+import { logStep }             from '../observability/telemetry.js'
 import { saveOutput }          from '../local/outputSaver.js'
 
 const upload = multer({
-  storage:    multer.memoryStorage(),
-  limits:     { fileSize: 20 * 1024 * 1024 },
+  storage: multer.memoryStorage(),
+  limits:  { fileSize: 20 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => cb(null, file.mimetype === 'application/pdf'),
 })
 
@@ -34,6 +33,11 @@ analyzeRouter.post('/analyze', upload.single('contract'), async (req: Request, r
     return
   }
 
+  logStep('File received', {
+    file:   req.file.originalname,
+    sizeMb: req.file.size / (1024 * 1024),
+  })
+
   const guard = runInputGuardrail(req.file.originalname, req.file.mimetype, req.file.size)
   if (!guard.ok) {
     res.status(422).json({ error: 'Input validation failed', details: guard.errors })
@@ -41,10 +45,23 @@ analyzeRouter.post('/analyze', upload.single('contract'), async (req: Request, r
   }
 
   try {
-    const { docId, filePath } = await saveContractLocally(req.file.buffer, req.file.originalname)
+    const { docId } = await saveContractLocally(req.file.buffer, req.file.originalname)
+
+    logStep('OCR started', { docId })
     const ocr = await ocrLocal(req.file.buffer)
+    logStep('OCR finished', {
+      docId,
+      pages:      ocr.pages,
+      confidence: `${Math.round(ocr.confidence * 100)}%`,
+      warnings:   ocr.warnings.length,
+    })
 
     if (ocr.confidence < 0.7) {
+      logStep('OCR stopped: quality too low', {
+        docId,
+        confidence: `${Math.round(ocr.confidence * 100)}%`,
+        warnings:   ocr.warnings.join('; '),
+      }, 'warn')
       res.status(422).json({
         error:      'OCR quality too low',
         confidence: ocr.confidence,
@@ -53,16 +70,33 @@ analyzeRouter.post('/analyze', upload.single('contract'), async (req: Request, r
       return
     }
 
-    await chunkAndEmbed(ocr, docId)
+    logStep('Embedding started', { docId })
+    const chunks = await chunkAndEmbed(ocr, docId)
+    logStep('Embedding finished', { docId, chunks: chunks.length })
 
-    const raw    = await runOrchestrator(ocr, docId)
+    logStep('Agent analysis started', { docId })
+    const raw = await runOrchestrator(ocr, docId)
+    logStep('Agent analysis finished', {
+      docId,
+      steps:   raw.agentSteps,
+      clauses: raw.clauses.length,
+      risks:   raw.risks.length,
+    })
+
     const report = enforceOutputSchema(raw, ocr, docId)
 
     contentPolicyFilter(report.summary)
 
+    logStep('Citation verification started', { docId })
     const cove = await runCoVeVerification(report, ocr.text)
     if (!cove.verified) {
-      console.warn('[CoVe] Unverified citations:', cove.issues)
+      logStep('Citation verification found issues', {
+        docId,
+        issues: cove.issues.length,
+        first:  cove.issues[0],
+      }, 'warn')
+    } else {
+      logStep('Citation verification passed', { docId })
     }
 
     const savedPath = await saveOutput(
@@ -70,19 +104,15 @@ analyzeRouter.post('/analyze', upload.single('contract'), async (req: Request, r
       docId,
       'report',
     )
-    console.log(`[output] Saved → ${savedPath}`)
 
-    await logSpan({
-      tool:       'full_pipeline',
+    logStep('Pipeline finished', {
+      docId,
+      savedPath,
+      pages:      ocr.pages,
+      clauses:    report.clauses.length,
+      risks:      report.risks.length,
+      agentSteps: report.agentSteps,
       durationMs: Date.now() - start,
-      meta: {
-        docId,
-        filePath,
-        pages:      ocr.pages,
-        clauses:    report.clauses.length,
-        risks:      report.risks.length,
-        agentSteps: report.agentSteps,
-      },
     })
 
     res.status(200).json({
@@ -91,14 +121,18 @@ analyzeRouter.post('/analyze', upload.single('contract'), async (req: Request, r
     })
   } catch (err) {
     if (err instanceof LoopGuardrailError) {
+      logStep('Analyze request failed: agent loop guardrail', { detail: err.message }, 'error')
       res.status(500).json({ error: 'Agent loop exceeded safety limits', detail: err.message })
       return
     }
     if (err instanceof OutputGuardrailError) {
+      logStep('Analyze request failed: output validation', { issues: err.issues.length }, 'error')
       res.status(500).json({ error: 'Output validation failed', issues: err.issues })
       return
     }
-    console.error('[analyzeRoute]', err)
+    logStep('Analyze request failed unexpectedly', {
+      error: err instanceof Error ? err.message : String(err),
+    }, 'error')
     res.status(500).json({ error: 'Internal server error' })
   }
 })

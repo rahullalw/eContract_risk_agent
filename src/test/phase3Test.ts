@@ -6,7 +6,7 @@ import { readFile, access }              from 'fs/promises'
 import { randomUUID }                    from 'crypto'
 
 async function testEmbedding() {
-  console.log('\n─── Embedding smoke test ───────────────────────────')
+  console.log('\n--- Embedding smoke test ---')
   const resp = await geminiClient.embeddings.create({
     model: EMBEDDING_MODEL,
     input: 'This contract includes an unlimited liability clause.',
@@ -14,14 +14,14 @@ async function testEmbedding() {
   const len = resp.data[0].embedding.length
   console.log(`Embedding length: ${len}`)
   if (len !== 3072) {
-    console.error(`FAIL — expected 3072, got ${len}`)
+    console.error(`FAIL: expected 3072, got ${len}`)
     process.exit(1)
   }
-  console.log('PASS — embedding length is 3072')
+  console.log('PASS: embedding length is 3072')
 }
 
 async function testChromaRoundTrip() {
-  console.log('\n─── Chroma round-trip test ─────────────────────────')
+  console.log('\n--- Chroma round-trip test ---')
   const testChunkId = `test-chunk-${randomUUID()}`
   const sampleText  = 'Liability shall be unlimited under this agreement.'
 
@@ -40,21 +40,21 @@ async function testChromaRoundTrip() {
   const queryEmb = await geminiClient.embeddings.create({ model: EMBEDDING_MODEL, input: 'unlimited liability' })
   const results  = await queryChroma(queryEmb.data[0].embedding, 1)
 
-  console.log('Query result:', JSON.stringify(results, null, 2))
   if (!results.length || results[0].score < 0.5) {
-    console.error('FAIL — no result or score too low')
+    console.error('FAIL: no result or score too low')
     process.exit(1)
   }
-  console.log('PASS — retrieved chunk with score:', results[0].score.toFixed(3))
+  console.log(`Query matched section ${results[0].sectionTag} with score ${results[0].score.toFixed(3)}`)
+  console.log('PASS: retrieved expected chunk')
 }
 
 async function testChunkAndEmbedPipeline() {
-  console.log('\n─── chunkAndEmbed pipeline test ────────────────────')
+  console.log('\n--- chunkAndEmbed pipeline test ---')
   const testFile = './sample-nda.pdf'
   try {
     await access(testFile)
   } catch {
-    console.log('SKIP — sample-nda.pdf not found, skipping pipeline test')
+    console.log('SKIP: sample-nda.pdf not found, skipping pipeline test')
     return
   }
 
@@ -62,9 +62,10 @@ async function testChunkAndEmbedPipeline() {
   const ocr    = await ocrLocal(buf)
   const docId  = randomUUID()
 
-  console.log(`OCR: ${ocr.pages} page(s), confidence: ${ocr.confidence}`)
+  console.log(`OCR pages: ${ocr.pages}`)
+  console.log(`OCR confidence: ${Math.round(ocr.confidence * 100)}%`)
   const chunks = await chunkAndEmbed(ocr, docId)
-  console.log(`PASS — embedded ${chunks.length} chunk(s) into Chroma`)
+  console.log(`PASS: embedded ${chunks.length} chunk(s) into Chroma`)
 }
 
 async function main() {
@@ -73,9 +74,9 @@ async function main() {
     await testEmbedding()
     await testChromaRoundTrip()
     await testChunkAndEmbedPipeline()
-    console.log('\n✅ All Phase 3 tests passed')
+    console.log('\nAll Phase 3 tests passed')
   } catch (err) {
-    console.error('\n❌ Test failed:', err)
+    console.error('\nTest failed:', err instanceof Error ? err.message : String(err))
     process.exit(1)
   }
 }

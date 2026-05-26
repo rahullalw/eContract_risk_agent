@@ -1,5 +1,5 @@
 import { geminiClient, EMBEDDING_MODEL } from '../local/geminiClient.js'
-import { upsertChunks }                  from '../local/chromaClient.js'
+import { upsertChunks }                  from '../local/vectorClient.js'
 import type { TextChunk, OcrResult }     from '../types/index.js'
 
 function detectSectionTag(text: string): string {

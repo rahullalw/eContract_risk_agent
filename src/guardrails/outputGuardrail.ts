@@ -1,4 +1,4 @@
-import { geminiClient, CHAT_MODEL }     from '../local/geminiClient.js'
+import { geminiClient, CHAT_MODEL, withRetry }     from '../local/geminiClient.js'
 import { AnalysisReportSchema }          from '../types/index.js'
 import type { AnalysisReport, OcrResult } from '../types/index.js'
 
@@ -101,13 +101,15 @@ CONTRACT TEXT (first 6000 chars):
 ${ocrText.slice(0, 6000)}`
 
   try {
-    const resp = await geminiClient.chat.completions.create({
-      model:           CHAT_MODEL,
-      response_format: { type: 'json_object' },
-      messages:        [{ role: 'user', content: prompt }],
-      temperature:     0,
-      max_tokens:      512,
-    })
+    const resp = await withRetry(() =>
+      geminiClient.chat.completions.create({
+        model:           CHAT_MODEL,
+        response_format: { type: 'json_object' },
+        messages:        [{ role: 'user', content: prompt }],
+        temperature:     0,
+        max_tokens:      512,
+      })
+    )
     return JSON.parse(resp.choices[0].message.content ?? '{"verified":true,"issues":[]}')
   } catch {
     return { verified: false, issues: ['CoVe verification failed'] }

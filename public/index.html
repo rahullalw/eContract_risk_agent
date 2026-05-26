@@ -3,43 +3,95 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>eContract Risk Agent</title>
+    <title>eContract Risk Agent — AI Contract Analyzer</title>
+    <meta name="description" content="Upload a contract PDF and get an instant AI-powered risk assessment: clause-level flags, risk score, precedent matching and actionable recommendations.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..900;1,14..32,300..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/styles.css">
   </head>
   <body>
-    <main class="shell">
-      <section class="intro" aria-labelledby="page-title">
-        <p class="eyebrow">Contract PDF review</p>
-        <h1 id="page-title">eContract Risk Agent</h1>
-        <p class="lede">
-          Upload a text-layer contract PDF and get a concise risk summary with clause-level flags.
-        </p>
-      </section>
 
-      <section class="workspace" aria-label="Contract analysis">
-        <form class="upload-panel" id="analyze-form">
-          <div class="dropzone" id="dropzone">
-            <input id="contract-file" name="contract" type="file" accept="application/pdf" required>
-            <div>
-              <p class="drop-title">Choose a PDF</p>
-              <p class="drop-copy" id="file-label">or drop it here, up to 20 MB</p>
+    <!-- ── Header ─────────────────────────────────────────────── -->
+    <header class="site-header">
+      <div class="header-inner">
+        <div class="brand">
+          <span class="brand-icon" aria-hidden="true">⚖</span>
+          <span class="brand-name">eContract<strong>AI</strong></span>
+        </div>
+        <nav class="header-nav" aria-label="Primary navigation">
+          <a href="#" class="nav-link active" id="nav-analyze" onclick="switchView('analyze', event)">Analyze</a>
+          <a href="#" class="nav-link" id="nav-history" onclick="switchView('history', event)">History</a>
+        </nav>
+      </div>
+    </header>
+
+    <!-- ── Analyze View ───────────────────────────────────────── -->
+    <main class="view" id="view-analyze">
+      <div class="hero">
+        <p class="eyebrow">AI Contract Intelligence</p>
+        <h1>Know what you're signing</h1>
+        <p class="lede">Upload a contract PDF and get a plain-English risk assessment in seconds — clause-level flags, precedent citations, and actionable recommendations.</p>
+      </div>
+
+      <div class="app-layout">
+        <!-- ── Upload panel ── -->
+        <aside class="upload-panel" aria-label="Upload contract">
+          <form id="analyze-form">
+            <div class="dropzone" id="dropzone">
+              <div class="dropzone-icon" aria-hidden="true">📄</div>
+              <input id="contract-file" name="contract" type="file" accept="application/pdf" required>
+              <p class="drop-title">Drop PDF or click to choose</p>
+              <p class="drop-copy" id="file-label">Up to 20 MB · Text-layer PDF</p>
             </div>
-          </div>
 
-          <button class="primary-action" type="submit">
-            <span>Analyze contract</span>
-          </button>
+            <button class="primary-action" type="submit" id="submit-btn">
+              <span class="btn-icon" aria-hidden="true">🔍</span>
+              <span id="submit-label">Analyze Contract</span>
+            </button>
 
-          <p class="status" id="status" role="status">Ready.</p>
-        </form>
+            <!-- Progress -->
+            <div class="progress-container" id="progress-container">
+              <div class="progress-bar-track">
+                <div class="progress-bar-fill" id="progress-fill"></div>
+              </div>
+              <div class="progress-label">
+                <span class="progress-step" id="progress-step">Initializing</span>
+                <span class="progress-percent" id="progress-percent">0%</span>
+              </div>
+            </div>
 
-        <section class="results" id="results" aria-live="polite">
-          <div class="empty-state">
-            <p class="empty-title">No report yet</p>
-            <p class="empty-copy">Results will appear here after the pipeline finishes.</p>
+            <!-- Queue / status -->
+            <div class="queue-info" id="queue-info"></div>
+            <p class="status" id="status" role="status"></p>
+          </form>
+
+          <!-- Quick stats (shown when report is ready) -->
+          <div class="side-stats" id="side-stats" hidden></div>
+
+          <p class="disclaimer-text">⚠ AI output is not legal advice. Consult a qualified lawyer.</p>
+        </aside>
+
+        <!-- ── Results panel ── -->
+        <section class="results-panel" id="results" aria-live="polite" aria-label="Analysis results">
+          <div class="empty-state" id="empty-state">
+            <div class="empty-art" aria-hidden="true">📋</div>
+            <h2 class="empty-title">Your report will appear here</h2>
+            <p class="empty-copy">Upload a contract on the left to get started. Analysis takes 10–30 seconds on first run; instant on repeat uploads.</p>
           </div>
         </section>
-      </section>
+      </div>
+    </main>
+
+    <!-- ── History View ───────────────────────────────────────── -->
+    <main class="view" id="view-history" hidden>
+      <div class="history-header">
+        <h1>Analysis History</h1>
+        <p class="lede">Previously analyzed contracts saved on this server.</p>
+      </div>
+      <div class="history-grid" id="history-list">
+        <p class="empty-copy">Loading history...</p>
+      </div>
     </main>
 
     <script src="/app.js" type="module"></script>

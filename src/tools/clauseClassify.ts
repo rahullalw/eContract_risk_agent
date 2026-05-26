@@ -1,5 +1,5 @@
-import { geminiClient, CHAT_MODEL } from '../local/geminiClient.js'
-import { getChunksByDocId }          from '../local/chromaClient.js'
+import { geminiClient, CHAT_MODEL, withRetry } from '../local/geminiClient.js'
+import { getChunksByDocId }                  from '../local/vectorClient.js'
 import type { Clause }               from '../types/index.js'
 
 export async function clauseClassify(
@@ -19,15 +19,17 @@ Rules:
 - type: one of termination, liability, indemnification, ip_ownership, confidentiality, payment, dispute_resolution, force_majeure, governing_law, other.
 - summary: ≤ 300 characters.`
 
-  const resp = await geminiClient.chat.completions.create({
-    model:           CHAT_MODEL,
-    response_format: { type: 'json_object' },
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user',   content: `Extract ${typeList} clauses from:\n\n${chunks.join('\n\n---\n\n')}` },
-    ],
-    temperature: 0,
-  })
+  const resp = await withRetry(() =>
+    geminiClient.chat.completions.create({
+      model:           CHAT_MODEL,
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user',   content: `Extract ${typeList} clauses from:\n\n${chunks.join('\n\n---\n\n')}` },
+      ],
+      temperature: 0,
+    })
+  )
 
   try {
     const parsed = JSON.parse(resp.choices[0].message.content ?? '{"clauses":[]}')

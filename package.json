@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/api/server.ts",
+    "dev": "cross-env NODE_OPTIONS=--max-old-space-size=1536 tsx watch src/api/server.ts",
     "build": "tsc",
-    "start": "node dist/api/server.js",
+    "start": "cross-env NODE_OPTIONS=--max-old-space-size=1536 node dist/api/server.js",
     "typecheck": "tsc --noEmit",
     "test:ocr": "tsx src/test/ocrTest.ts",
     "test:p3": "tsx src/test/phase3Test.ts",
@@ -28,6 +28,7 @@
     "@types/multer": "^1.4.12",
     "@types/node": "^22.15.0",
     "@types/pdf-parse": "^1.1.4",
+    "cross-env": "^10.1.0",
     "tsx": "^4.19.3",
     "typescript": "^5.8.3"
   }

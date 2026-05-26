@@ -821,3 +821,184 @@ function escapeHtml(v) {
     .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;').replaceAll("'", '&#039;')
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   HERO CONTRACT SCAN ANIMATION ORCHESTRATOR
+   Drives: scanner highlighting, chip pop-ins, score ring, counters, pills
+   Loops every ~11 seconds.
+   ────────────────────────────────────────────────────────────────────────── */
+;(function initHeroScanAnimation() {
+  // Config
+  const SCAN_DURATION  = 3200  // ms — matches CSS @keyframes scannerSweep
+  const SCAN_DELAY     = 500   // initial delay before first scan
+  const LOOP_PAUSE     = 2500  // ms pause after full animation before reset
+  const TARGET_RISK    = 74
+  const TARGET_CLAUSES = 18
+  const TARGET_FLAGS   = 5
+
+  const riskPills = [
+    { label: '● Critical ×2', cls: 'risk-pill-critical', delay: 200 },
+    { label: '● High ×2',     cls: 'risk-pill-high',     delay: 500 },
+    { label: '● Medium ×1',   cls: 'risk-pill-medium',   delay: 800 },
+  ]
+
+  // Clause sections: each entry maps to a doc-section index and scan % range
+  // The scanner sweeps 0→100% of doc-body height. These %s trigger highlights.
+  const clauseTriggers = [
+    // { sectionIndex, riskClass (null = safe), chipId, notifEl, scanPercent }
+    { sectionIdx: 1, riskClass: 'risk-highlighted-medium',   chipId: 'chip1', scanPct: 0.35 },
+    { sectionIdx: 2, riskClass: 'risk-highlighted-critical', chipId: 'chip2', scanPct: 0.58 },
+    { sectionIdx: 3, riskClass: 'risk-highlighted-high',     chipId: 'chip3', scanPct: 0.79 },
+  ]
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  function qs(id)  { return document.getElementById(id) }
+  function qsa(sel){ return document.querySelectorAll(sel) }
+
+  function lerp(from, to, t) { return Math.round(from + (to - from) * t) }
+
+  // Animate a numeric counter element from 0 → target over `duration` ms
+  function animCount(el, target, duration) {
+    if (!el) return
+    const start = performance.now()
+    function step(now) {
+      const t = Math.min((now - start) / duration, 1)
+      el.textContent = lerp(0, target, t)
+      if (t < 1) requestAnimationFrame(step)
+    }
+    requestAnimationFrame(step)
+  }
+
+  // Animate SVG ring from offset 157 → (157 - 157*fraction)
+  function animRing(ringEl, valEl, targetScore, duration) {
+    if (!ringEl || !valEl) return
+    const circumference = 157
+    const targetOffset  = circumference - (circumference * targetScore / 100)
+    const startTime     = performance.now()
+
+    // Colour thresholds
+    const colour = targetScore >= 70 ? '#EF4444'
+                 : targetScore >= 40 ? '#F97316'
+                 : '#10B981'
+    ringEl.style.stroke = colour
+    valEl.style.color   = colour
+
+    function step(now) {
+      const t = Math.min((now - startTime) / duration, 1)
+      const eased = 1 - Math.pow(1 - t, 3)  // ease-out-cubic
+      ringEl.setAttribute('stroke-dashoffset', circumference - (circumference - targetOffset) * eased)
+      valEl.textContent = lerp(0, targetScore, eased)
+      if (t < 1) requestAnimationFrame(step)
+    }
+    requestAnimationFrame(step)
+  }
+
+  // Highlight all lines in a section index
+  function highlightSection(sectionIdx, riskClass) {
+    const sections = qsa('.doc-section')
+    if (!sections[sectionIdx]) return
+    const lines = sections[sectionIdx].querySelectorAll('.doc-line')
+    lines.forEach((ln, i) => {
+      setTimeout(() => {
+        if (ln.dataset.risk) {
+          ln.classList.add(riskClass)
+        } else {
+          ln.classList.add('highlighted')
+        }
+      }, i * 60)
+    })
+  }
+
+  // ── Reset everything ─────────────────────────────────────────────────────
+  function resetAll() {
+    // Reset lines
+    qsa('.doc-line').forEach(ln => {
+      ln.className = ln.className
+        .replace(/\s*(highlighted|risk-highlighted-\w+)/g, '')
+    })
+    // Reset chips
+    qsa('.clause-chip').forEach(c => c.classList.remove('visible'))
+    // Reset ring
+    const ring = qs('riskRingFill')
+    const val  = qs('riskRingVal')
+    if (ring) ring.setAttribute('stroke-dashoffset', '157')
+    if (val)  val.textContent = '0'
+    // Reset counts
+    const cc = qs('clauseCount')
+    const fc = qs('flagCount')
+    if (cc) cc.textContent = '0'
+    if (fc) fc.textContent = '0'
+    // Reset pills
+    const pillRow = qs('riskPillRow')
+    if (pillRow) pillRow.innerHTML = ''
+  }
+
+  // ── Run one full animation cycle ─────────────────────────────────────────
+  function runCycle() {
+    resetAll()
+
+    // 1. Scan starts — the CSS animation handles the beam movement.
+    //    We schedule highlights based on the scanner's progress (% of SCAN_DURATION).
+
+    clauseTriggers.forEach(({ sectionIdx, riskClass, chipId, scanPct }) => {
+      const triggerAt = SCAN_DELAY + SCAN_DURATION * scanPct
+      setTimeout(() => {
+        highlightSection(sectionIdx, riskClass)
+        const chip = qs(chipId)
+        if (chip) chip.classList.add('visible')
+      }, triggerAt)
+    })
+
+    // 2. After scan completes: animate score ring + counters
+    const postScan = SCAN_DELAY + SCAN_DURATION + 300
+    setTimeout(() => {
+      animRing(qs('riskRingFill'), qs('riskRingVal'), TARGET_RISK, 1400)
+      animCount(qs('clauseCount'), TARGET_CLAUSES, 1200)
+      animCount(qs('flagCount'),   TARGET_FLAGS,   1000)
+    }, postScan)
+
+    // 3. Risk pills appear staggered after ring
+    riskPills.forEach(({ label, cls, delay }) => {
+      setTimeout(() => {
+        const pillRow = qs('riskPillRow')
+        if (!pillRow) return
+        const pill = document.createElement('span')
+        pill.className = `risk-pill ${cls}`
+        pill.textContent = label
+        pillRow.appendChild(pill)
+        requestAnimationFrame(() => requestAnimationFrame(() => pill.classList.add('visible')))
+      }, postScan + 800 + delay)
+    })
+
+    // 4. Schedule next loop
+    const cycleLength = postScan + 2000 + LOOP_PAUSE
+    setTimeout(runCycle, cycleLength)
+  }
+
+  // ── Boot when landing view is visible ────────────────────────────────────
+  // Start immediately if landing view is shown, else wait for switchView
+  function bootIfLanding() {
+    const landing = document.getElementById('view-landing')
+    if (landing && !landing.classList.contains('hidden')) {
+      runCycle()
+    }
+  }
+
+  // Hook into the existing switchView function
+  const _origSwitchView = window.switchView
+  window.switchView = function(view, evt) {
+    if (typeof _origSwitchView === 'function') _origSwitchView(view, evt)
+    if (view === 'landing') {
+      // Short delay so the view is visible before animation kicks off
+      setTimeout(runCycle, 400)
+    }
+  }
+
+  // Kick off on DOMContentLoaded or immediately if already loaded
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(bootIfLanding, 600))
+  } else {
+    setTimeout(bootIfLanding, 600)
+  }
+})()
+

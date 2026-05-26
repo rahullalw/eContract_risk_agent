@@ -83,52 +83,149 @@
           </div>
         </div>
 
-        <!-- Right: Interactive Live Visual / Mockup -->
+        <!-- Right: Animated Contract Scan Visual -->
         <div class="hero-visual">
-          <div class="visual-card-glow"></div>
-          <div class="mock-dashboard">
-            <div class="mock-header">
-              <div class="mock-dots">
-                <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-              </div>
-              <div class="mock-title">Risk Assessment Summary · ND_Agreement.pdf</div>
+          <div class="visual-bg-orb"></div>
+
+          <!-- Floating notification cards (left side) -->
+          <div class="float-notif float-notif-1">
+            <div class="notif-icon notif-icon-green">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
-            
-            <div class="mock-body">
-              <!-- Verdict Row -->
-              <div class="mock-verdict warning">
-                <div class="verdict-info">
-                  <div class="verdict-tag">High Risk Detected</div>
-                  <div class="verdict-desc">Indemnification and Governing Law require review.</div>
-                </div>
-                <div class="verdict-score">
-                  <span class="score-val">78</span>
-                  <span class="score-lbl">Risk Score</span>
+            <div class="notif-body">
+              <div class="notif-label">Clause Extracted</div>
+              <div class="notif-detail">Indemnification · §4.2</div>
+            </div>
+          </div>
+
+          <div class="float-notif float-notif-2">
+            <div class="notif-icon notif-icon-red">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>
+            </div>
+            <div class="notif-body">
+              <div class="notif-label">Risk Flagged</div>
+              <div class="notif-detail">Governing Law · Critical</div>
+            </div>
+          </div>
+
+          <div class="float-notif float-notif-3">
+            <div class="notif-icon notif-icon-indigo">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </div>
+            <div class="notif-body">
+              <div class="notif-label">Precedent Matched</div>
+              <div class="notif-detail">Liability Cap · Standard</div>
+            </div>
+          </div>
+
+          <!-- Central Contract Document Card -->
+          <div class="contract-doc-card">
+            <!-- Card Header -->
+            <div class="doc-card-header">
+              <div class="doc-card-dots">
+                <span></span><span></span><span></span>
+              </div>
+              <div class="doc-card-title">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                NDA_Agreement_2026.pdf
+              </div>
+              <div class="doc-card-status">
+                <span class="status-dot"></span>
+                Analyzing
+              </div>
+            </div>
+
+            <!-- Document body with scanner overlay -->
+            <div class="doc-body" id="docBody">
+              <!-- Scanner beam -->
+              <div class="scanner-beam" id="scannerBeam"></div>
+              <!-- Scanner glow -->
+              <div class="scanner-glow" id="scannerGlow"></div>
+
+              <!-- Document text lines (clauses) -->
+              <div class="doc-section">
+                <div class="doc-section-label">§ 1 — Parties & Definitions</div>
+                <div class="doc-line line-w-full" data-clause="0"></div>
+                <div class="doc-line line-w-9" data-clause="0"></div>
+                <div class="doc-line line-w-full" data-clause="0"></div>
+                <div class="doc-line line-w-7" data-clause="0"></div>
+              </div>
+
+              <div class="doc-section">
+                <div class="doc-section-label">§ 2 — Confidentiality Obligations</div>
+                <div class="doc-line line-w-full" data-clause="1"></div>
+                <div class="doc-line line-w-full" data-clause="1"></div>
+                <div class="doc-line line-w-8" data-clause="1"></div>
+                <div class="doc-line line-w-full risk-line" data-clause="1" data-risk="medium"></div>
+                <div class="doc-line line-w-6" data-clause="1"></div>
+              </div>
+
+              <div class="doc-section">
+                <div class="doc-section-label">§ 4 — Indemnification & Liability</div>
+                <div class="doc-line line-w-full risk-line" data-clause="2" data-risk="critical"></div>
+                <div class="doc-line line-w-full risk-line" data-clause="2" data-risk="critical"></div>
+                <div class="doc-line line-w-9 risk-line" data-clause="2" data-risk="critical"></div>
+                <div class="doc-line line-w-full" data-clause="2"></div>
+                <div class="doc-line line-w-7" data-clause="2"></div>
+              </div>
+
+              <div class="doc-section">
+                <div class="doc-section-label">§ 6 — Governing Law & Jurisdiction</div>
+                <div class="doc-line line-w-full risk-line" data-clause="3" data-risk="high"></div>
+                <div class="doc-line line-w-8 risk-line" data-clause="3" data-risk="high"></div>
+                <div class="doc-line line-w-full" data-clause="3"></div>
+                <div class="doc-line line-w-5" data-clause="3"></div>
+              </div>
+
+              <!-- Scanned overlay chips appear as scanner passes -->
+              <div class="clause-chip chip-1" id="chip1">
+                <span class="chip-dot chip-dot-blue"></span> §2 Confidentiality
+              </div>
+              <div class="clause-chip chip-2" id="chip2">
+                <span class="chip-dot chip-dot-red"></span> §4 Indemnification
+              </div>
+              <div class="clause-chip chip-3" id="chip3">
+                <span class="chip-dot chip-dot-orange"></span> §6 Governing Law
+              </div>
+            </div>
+
+            <!-- Card Footer: Score gauge + summary -->
+            <div class="doc-card-footer">
+              <div class="score-ring-wrapper">
+                <svg class="score-ring-svg" viewBox="0 0 60 60" width="60" height="60">
+                  <circle class="ring-track" cx="30" cy="30" r="25" fill="none" stroke-width="5"/>
+                  <circle class="ring-fill" id="riskRingFill" cx="30" cy="30" r="25" fill="none" stroke-width="5"
+                          stroke-dasharray="157" stroke-dashoffset="157"
+                          transform="rotate(-90 30 30)"/>
+                </svg>
+                <div class="ring-text">
+                  <span class="ring-val" id="riskRingVal">0</span>
+                  <span class="ring-lbl">Risk</span>
                 </div>
               </div>
-              
-              <!-- Mock Analysis Columns -->
-              <div class="mock-diff-grid">
-                <div class="mock-pane original">
-                  <div class="pane-lbl">Contract Text</div>
-                  <div class="pane-text">
-                    "This Agreement shall be governed by, and construed in accordance with, the laws of the State of Delaware, without regard to conflict of laws principles..."
+              <div class="doc-footer-meta">
+                <div class="footer-stat-row">
+                  <div class="footer-stat">
+                    <span class="footer-stat-val" id="clauseCount">0</span>
+                    <span class="footer-stat-label">Clauses</span>
+                  </div>
+                  <div class="footer-stat">
+                    <span class="footer-stat-val" id="flagCount">0</span>
+                    <span class="footer-stat-label">Flags</span>
+                  </div>
+                  <div class="footer-stat">
+                    <span class="footer-stat-val">4</span>
+                    <span class="footer-stat-label">Pages</span>
                   </div>
                 </div>
-                <div class="mock-pane assessment">
-                  <div class="pane-lbl">AI Auditor Response</div>
-                  <div class="pane-badge high">⚠️ High Flag</div>
-                  <div class="pane-analysis">
-                    <strong>Jurisdiction mismatch:</strong> Delaware law differs significantly from your regional business operation location. 
-                    <div class="recommendation-pill">
-                      💡 <strong>Recommendation:</strong> Negotiate to change the governing state to California or local jurisdiction.
-                    </div>
-                  </div>
+                <div class="risk-pill-row" id="riskPillRow">
+                  <!-- Risk pills appear dynamically -->
                 </div>
               </div>
             </div>
           </div>
         </div>
+
       </div>
 
       <!-- Core Features Grid -->

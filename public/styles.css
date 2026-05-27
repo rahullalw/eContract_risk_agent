@@ -2197,9 +2197,11 @@ h1 {
 /* ── Risk pills (appear dynamically) ── */
 .risk-pill-row {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  flex-wrap: nowrap;
   gap: 5px;
-  min-height: 20px;
+  height: 20px;
+  overflow: hidden;
 }
 .risk-pill {
   font-size: 9px;

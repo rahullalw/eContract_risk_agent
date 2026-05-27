@@ -851,6 +851,20 @@ function escapeHtml(v) {
     { sectionIdx: 3, riskClass: 'risk-highlighted-high',     chipId: 'chip3', scanPct: 0.79 },
   ]
 
+  // Timeout registry to prevent overlapping animation cycles
+  let activeTimeouts = []
+
+  function scheduleTimeout(fn, delay) {
+    const handle = setTimeout(fn, delay)
+    activeTimeouts.push(handle)
+    return handle
+  }
+
+  function clearAllTimeouts() {
+    activeTimeouts.forEach(clearTimeout)
+    activeTimeouts = []
+  }
+
   // ── Helpers ──────────────────────────────────────────────────────────────
   function qs(id)  { return document.getElementById(id) }
   function qsa(sel){ return document.querySelectorAll(sel) }
@@ -899,7 +913,7 @@ function escapeHtml(v) {
     if (!sections[sectionIdx]) return
     const lines = sections[sectionIdx].querySelectorAll('.doc-line')
     lines.forEach((ln, i) => {
-      setTimeout(() => {
+      scheduleTimeout(() => {
         if (ln.dataset.risk) {
           ln.classList.add(riskClass)
         } else {
@@ -911,6 +925,7 @@ function escapeHtml(v) {
 
   // ── Reset everything ─────────────────────────────────────────────────────
   function resetAll() {
+    clearAllTimeouts()
     // Reset lines
     qsa('.doc-line').forEach(ln => {
       ln.className = ln.className
@@ -942,7 +957,7 @@ function escapeHtml(v) {
 
     clauseTriggers.forEach(({ sectionIdx, riskClass, chipId, scanPct }) => {
       const triggerAt = SCAN_DELAY + SCAN_DURATION * scanPct
-      setTimeout(() => {
+      scheduleTimeout(() => {
         highlightSection(sectionIdx, riskClass)
         const chip = qs(chipId)
         if (chip) chip.classList.add('visible')
@@ -951,7 +966,7 @@ function escapeHtml(v) {
 
     // 2. After scan completes: animate score ring + counters
     const postScan = SCAN_DELAY + SCAN_DURATION + 300
-    setTimeout(() => {
+    scheduleTimeout(() => {
       animRing(qs('riskRingFill'), qs('riskRingVal'), TARGET_RISK, 1400)
       animCount(qs('clauseCount'), TARGET_CLAUSES, 1200)
       animCount(qs('flagCount'),   TARGET_FLAGS,   1000)
@@ -959,7 +974,7 @@ function escapeHtml(v) {
 
     // 3. Risk pills appear staggered after ring
     riskPills.forEach(({ label, cls, delay }) => {
-      setTimeout(() => {
+      scheduleTimeout(() => {
         const pillRow = qs('riskPillRow')
         if (!pillRow) return
         const pill = document.createElement('span')
@@ -972,7 +987,7 @@ function escapeHtml(v) {
 
     // 4. Schedule next loop
     const cycleLength = postScan + 2000 + LOOP_PAUSE
-    setTimeout(runCycle, cycleLength)
+    scheduleTimeout(runCycle, cycleLength)
   }
 
   // ── Boot when landing view is visible ────────────────────────────────────
@@ -990,7 +1005,8 @@ function escapeHtml(v) {
     if (typeof _origSwitchView === 'function') _origSwitchView(view, evt)
     if (view === 'landing') {
       // Short delay so the view is visible before animation kicks off
-      setTimeout(runCycle, 400)
+      clearAllTimeouts()
+      scheduleTimeout(runCycle, 400)
     }
   }
 

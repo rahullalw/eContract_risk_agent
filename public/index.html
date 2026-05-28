@@ -3,94 +3,353 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>eContract Risk Agent — AI Contract Analyzer</title>
-    <meta name="description" content="Upload a contract PDF and get an instant AI-powered risk assessment: clause-level flags, risk score, precedent matching and actionable recommendations.">
+    <title>eContract AI — Advanced Risk Intelligence</title>
+    <meta name="description" content="Securely audit your legal contracts instantly with AI. Extract clauses, identify liabilities, reference legal precedents, and calculate risk scores.">
+    
+    <!-- Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..900;1,14..32,300..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
     <link rel="stylesheet" href="/styles.css">
   </head>
   <body>
 
-    <!-- ── Header ─────────────────────────────────────────────── -->
+    <!-- ── Floating Navbar ─────────────────────────────────────────── -->
     <header class="site-header">
       <div class="header-inner">
-        <div class="brand">
-          <span class="brand-icon" aria-hidden="true">⚖</span>
-          <span class="brand-name">eContract<strong>AI</strong></span>
+        <div class="brand" onclick="switchView('landing', event)">
+          <div class="brand-logo">
+            <svg class="w-6 h-6 text-primary" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+          <span class="brand-name">eContract<span class="brand-highlight">AI</span></span>
         </div>
         <nav class="header-nav" aria-label="Primary navigation">
-          <a href="#" class="nav-link active" id="nav-analyze" onclick="switchView('analyze', event)">Analyze</a>
-          <a href="#" class="nav-link" id="nav-history" onclick="switchView('history', event)">History</a>
+          <a href="#" class="nav-link active" id="nav-landing" onclick="switchView('landing', event)">
+            <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            Home
+          </a>
+          <a href="#" class="nav-link" id="nav-analyze" onclick="switchView('analyze', event)">
+            <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 17V7"/><path d="M15 17v-4"/><path d="M11 13H9"/><path d="M15 9h-2"/></svg>
+            Analyzer
+          </a>
+          <a href="#" class="nav-link" id="nav-history" onclick="switchView('history', event)">
+            <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>
+            History
+          </a>
         </nav>
       </div>
     </header>
 
-    <!-- ── Analyze View ───────────────────────────────────────── -->
-    <main class="view" id="view-analyze">
-      <div class="hero">
-        <p class="eyebrow">AI Contract Intelligence</p>
-        <h1>Know what you're signing</h1>
-        <p class="lede">Upload a contract PDF and get a plain-English risk assessment in seconds — clause-level flags, precedent citations, and actionable recommendations.</p>
-      </div>
+    <!-- ── View 1: Landing Page ──────────────────────────────────────── -->
+    <main class="view" id="view-landing">
+      <div class="landing-hero-grid">
+        <!-- Left: Marketing Content -->
+        <div class="hero-content">
+          <div class="eyebrow-badge">
+            <span class="badge-dot animate-ping"></span>
+            <span class="badge-text">Next-Gen Contract Intelligence</span>
+          </div>
+          <h1>Know your risks <span class="gradient-text">before signing.</span></h1>
+          <p class="lede">
+            Securely audit and score any contract PDF instantly. Our specialized AI extracts clauses, identifies liabilities, checks governing precedents, and provides actionable summaries—fully private and executed in seconds.
+          </p>
+          <div class="hero-actions">
+            <button class="cta-primary hover-glow" onclick="switchView('analyze', event)">
+              <span>Launch Analyzer</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </button>
+            <a href="#features-anchor" class="cta-secondary" onclick="document.getElementById('features-anchor').scrollIntoView({behavior:'smooth'}); return false;">
+              Learn More
+            </a>
+          </div>
+          
+          <!-- Key Metrics -->
+          <div class="hero-metrics">
+            <div class="metric-item">
+              <span class="metric-num">99.8%</span>
+              <span class="metric-label">Precision Rate</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-num">&lt; 15s</span>
+              <span class="metric-label">Audit Duration</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-num">100%</span>
+              <span class="metric-label">Private Sandbox</span>
+            </div>
+          </div>
+        </div>
 
-      <div class="app-layout">
-        <!-- ── Upload panel ── -->
-        <aside class="upload-panel" aria-label="Upload contract">
-          <form id="analyze-form">
-            <div class="dropzone" id="dropzone">
-              <div class="dropzone-icon" aria-hidden="true">📄</div>
-              <input id="contract-file" name="contract" type="file" accept="application/pdf" required>
-              <p class="drop-title">Drop PDF or click to choose</p>
-              <p class="drop-copy" id="file-label">Up to 20 MB · Text-layer PDF</p>
+        <!-- Right: Animated Contract Scan Visual -->
+        <div class="hero-visual">
+          <div class="visual-bg-orb"></div>
+
+          <!-- Floating notification cards (left side) -->
+          <div class="float-notif float-notif-1">
+            <div class="notif-icon notif-icon-green">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div class="notif-body">
+              <div class="notif-label">Clause Extracted</div>
+              <div class="notif-detail">Indemnification · §4.2</div>
+            </div>
+          </div>
+
+          <div class="float-notif float-notif-2">
+            <div class="notif-icon notif-icon-red">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>
+            </div>
+            <div class="notif-body">
+              <div class="notif-label">Risk Flagged</div>
+              <div class="notif-detail">Governing Law · Critical</div>
+            </div>
+          </div>
+
+          <div class="float-notif float-notif-3">
+            <div class="notif-icon notif-icon-indigo">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </div>
+            <div class="notif-body">
+              <div class="notif-label">Precedent Matched</div>
+              <div class="notif-detail">Liability Cap · Standard</div>
+            </div>
+          </div>
+
+          <!-- Central Contract Document Card -->
+          <div class="contract-doc-card">
+            <!-- Card Header -->
+            <div class="doc-card-header">
+              <div class="doc-card-dots">
+                <span></span><span></span><span></span>
+              </div>
+              <div class="doc-card-title">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                NDA_Agreement_2026.pdf
+              </div>
+              <div class="doc-card-status">
+                <span class="status-dot"></span>
+                Analyzing
+              </div>
             </div>
 
-            <button class="primary-action" type="submit" id="submit-btn">
-              <span class="btn-icon" aria-hidden="true">🔍</span>
+            <!-- Document body with scanner overlay -->
+            <div class="doc-body" id="docBody">
+              <!-- Scanner beam -->
+              <div class="scanner-beam" id="scannerBeam"></div>
+              <!-- Scanner glow -->
+              <div class="scanner-glow" id="scannerGlow"></div>
+
+              <!-- Document text lines (clauses) -->
+              <div class="doc-section">
+                <div class="doc-section-label">§ 1 — Parties & Definitions</div>
+                <div class="doc-line line-w-full" data-clause="0"></div>
+                <div class="doc-line line-w-9" data-clause="0"></div>
+                <div class="doc-line line-w-full" data-clause="0"></div>
+                <div class="doc-line line-w-7" data-clause="0"></div>
+              </div>
+
+              <div class="doc-section">
+                <div class="doc-section-label">§ 2 — Confidentiality Obligations</div>
+                <div class="doc-line line-w-full" data-clause="1"></div>
+                <div class="doc-line line-w-full" data-clause="1"></div>
+                <div class="doc-line line-w-8" data-clause="1"></div>
+                <div class="doc-line line-w-full risk-line" data-clause="1" data-risk="medium"></div>
+                <div class="doc-line line-w-6" data-clause="1"></div>
+              </div>
+
+              <div class="doc-section">
+                <div class="doc-section-label">§ 4 — Indemnification & Liability</div>
+                <div class="doc-line line-w-full risk-line" data-clause="2" data-risk="critical"></div>
+                <div class="doc-line line-w-full risk-line" data-clause="2" data-risk="critical"></div>
+                <div class="doc-line line-w-9 risk-line" data-clause="2" data-risk="critical"></div>
+                <div class="doc-line line-w-full" data-clause="2"></div>
+                <div class="doc-line line-w-7" data-clause="2"></div>
+              </div>
+
+              <div class="doc-section">
+                <div class="doc-section-label">§ 6 — Governing Law & Jurisdiction</div>
+                <div class="doc-line line-w-full risk-line" data-clause="3" data-risk="high"></div>
+                <div class="doc-line line-w-8 risk-line" data-clause="3" data-risk="high"></div>
+                <div class="doc-line line-w-full" data-clause="3"></div>
+                <div class="doc-line line-w-5" data-clause="3"></div>
+              </div>
+
+              <!-- Scanned overlay chips appear as scanner passes -->
+              <div class="clause-chip chip-1" id="chip1">
+                <span class="chip-dot chip-dot-blue"></span> §2 Confidentiality
+              </div>
+              <div class="clause-chip chip-2" id="chip2">
+                <span class="chip-dot chip-dot-red"></span> §4 Indemnification
+              </div>
+              <div class="clause-chip chip-3" id="chip3">
+                <span class="chip-dot chip-dot-orange"></span> §6 Governing Law
+              </div>
+            </div>
+
+            <!-- Card Footer: Score gauge + summary -->
+            <div class="doc-card-footer">
+              <div class="score-ring-wrapper">
+                <svg class="score-ring-svg" viewBox="0 0 60 60" width="60" height="60">
+                  <circle class="ring-track" cx="30" cy="30" r="25" fill="none" stroke-width="5"/>
+                  <circle class="ring-fill" id="riskRingFill" cx="30" cy="30" r="25" fill="none" stroke-width="5"
+                          stroke-dasharray="157" stroke-dashoffset="157"
+                          transform="rotate(-90 30 30)"/>
+                </svg>
+                <div class="ring-text">
+                  <span class="ring-val" id="riskRingVal">0</span>
+                  <span class="ring-lbl">Risk</span>
+                </div>
+              </div>
+              <div class="doc-footer-meta">
+                <div class="footer-stat-row">
+                  <div class="footer-stat">
+                    <span class="footer-stat-val" id="clauseCount">0</span>
+                    <span class="footer-stat-label">Clauses</span>
+                  </div>
+                  <div class="footer-stat">
+                    <span class="footer-stat-val" id="flagCount">0</span>
+                    <span class="footer-stat-label">Flags</span>
+                  </div>
+                  <div class="footer-stat">
+                    <span class="footer-stat-val">4</span>
+                    <span class="footer-stat-label">Pages</span>
+                  </div>
+                </div>
+                <div class="risk-pill-row" id="riskPillRow">
+                  <!-- Risk pills appear dynamically -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Core Features Grid -->
+      <section class="features-section" id="features-anchor">
+        <h2 class="section-title-center">Engineered for Legal Clarity</h2>
+        <p class="section-subtitle-center">Advanced automation engineered to mitigate legal traps, reduce contract cycle times, and shield your operations.</p>
+        
+        <div class="features-grid">
+          <!-- Card 1 -->
+          <div class="feature-card">
+            <div class="feature-icon-wrapper">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>
+            </div>
+            <h3>Instant Semantic Audits</h3>
+            <p>Advanced neural language parsing isolates governing rules, liabilities, IP rights, payment terms, and termination loops in milliseconds.</p>
+          </div>
+
+          <!-- Card 2 -->
+          <div class="feature-card">
+            <div class="feature-icon-wrapper">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <h3>Precedent Alignment</h3>
+            <p>Clauses are instantly measured against standard legal libraries, exposing non-standard phrasing and unfavorable indemnification liabilities.</p>
+          </div>
+
+          <!-- Card 3 -->
+          <div class="feature-card">
+            <div class="feature-icon-wrapper">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            </div>
+            <h3>Local Privacy Sandboxing</h3>
+            <p>All analysis summaries, flag history, and reports are saved privately on your local browser via IndexedDB. Absolute security by default.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ── View 2: Analyze / Dashboard View ──────────────────────────── -->
+    <main class="view" id="view-analyze" hidden>
+      <div class="app-layout">
+        <!-- ── Left Upload Panel (Lean and Highly Visual) ── -->
+        <aside class="upload-panel" aria-label="Upload contract">
+          <h2 class="panel-header-title">Upload Contract</h2>
+          <form id="analyze-form">
+            <div class="dropzone" id="dropzone">
+              <div class="dropzone-svg-wrapper">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-12 h-12 text-primary">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="12" y1="18" x2="12" y2="12"/>
+                  <polyline points="9 15 12 12 15 15"/>
+                </svg>
+              </div>
+              <input id="contract-file" name="contract" type="file" accept="application/pdf" required>
+              <p class="drop-title">Drop PDF or click to browse</p>
+              <p class="drop-copy" id="file-label">Max 20 MB · Text-layer PDF</p>
+            </div>
+
+            <button class="primary-action hover-glow" type="submit" id="submit-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 btn-icon-svg"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               <span id="submit-label">Analyze Contract</span>
             </button>
 
-            <!-- Progress -->
+            <!-- Progress Tracker -->
             <div class="progress-container" id="progress-container">
               <div class="progress-bar-track">
                 <div class="progress-bar-fill" id="progress-fill"></div>
               </div>
               <div class="progress-label">
-                <span class="progress-step" id="progress-step">Initializing</span>
+                <span class="progress-step" id="progress-step">Initializing Pipeline</span>
                 <span class="progress-percent" id="progress-percent">0%</span>
               </div>
             </div>
 
-            <!-- Queue / status -->
+            <!-- Queue status -->
             <div class="queue-info" id="queue-info"></div>
             <p class="status" id="status" role="status"></p>
           </form>
 
-          <!-- Quick stats (shown when report is ready) -->
-          <div class="side-stats" id="side-stats" hidden></div>
+          <!-- Quick Stats Panel -->
+          <div class="side-stats-wrapper">
+            <div class="side-stats-title">Report Summary</div>
+            <div class="side-stats" id="side-stats" hidden></div>
+          </div>
 
-          <p class="disclaimer-text">⚠ AI output is not legal advice. Consult a qualified lawyer.</p>
+          <div class="disclaimer-text">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 inline-warning-icon"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            AI outputs are synthesized guidelines. Verify obligations with counsel.
+          </div>
         </aside>
 
-        <!-- ── Results panel ── -->
+        <!-- ── Right Results Dashboard Panel ── -->
         <section class="results-panel" id="results" aria-live="polite" aria-label="Analysis results">
           <div class="empty-state" id="empty-state">
-            <div class="empty-art" aria-hidden="true">📋</div>
-            <h2 class="empty-title">Your report will appear here</h2>
-            <p class="empty-copy">Upload a contract on the left to get started. Analysis takes 10–30 seconds on first run; instant on repeat uploads.</p>
+            <div class="empty-art-svg">
+              <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="w-16 h-16 text-muted">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10 9 9 9 8 9"/>
+              </svg>
+            </div>
+            <h2 class="empty-title">Audit Report Workspace</h2>
+            <p class="empty-copy">
+              Drag and drop your agreement PDF on the left panel. A comprehensive risk report will compile here in under 15 seconds.
+            </p>
           </div>
         </section>
       </div>
     </main>
 
-    <!-- ── History View ───────────────────────────────────────── -->
+    <!-- ── View 3: History View ──────────────────────────────────────── -->
     <main class="view" id="view-history" hidden>
       <div class="history-header">
-        <h1>Analysis History</h1>
-        <p class="lede">Previously analyzed contracts saved on this server.</p>
+        <h1>Analysis Registry</h1>
+        <p class="lede">Inspect previously compiled contract audit sessions saved securely on your local browser sandboxed storage.</p>
       </div>
       <div class="history-grid" id="history-list">
-        <p class="empty-copy">Loading history...</p>
+        <div class="history-loading-msg">
+          <span class="loading-spinner"></span>
+          <span>Loading historical audits...</span>
+        </div>
       </div>
     </main>
 

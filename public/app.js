@@ -124,6 +124,33 @@ dropzone.addEventListener('drop', e => {
   fileInput.dispatchEvent(new Event('change'))
 })
 
+// ── Quick-Try Sample NDA ────────────────────────────────────────────────
+const trySampleLink = document.querySelector('#try-sample-link')
+if (trySampleLink) {
+  trySampleLink.addEventListener('click', async e => {
+    e.preventDefault()
+    e.stopPropagation()
+    try {
+      trySampleLink.textContent = 'Loading…'
+      trySampleLink.style.pointerEvents = 'none'
+      const response = await fetch('/sample-nda.pdf')
+      const blob = await response.blob()
+      const file = new File([blob], 'sample-nda.pdf', { type: 'application/pdf' })
+      const dt = new DataTransfer(); dt.items.add(file)
+      fileInput.files = dt.files
+      fileInput.dispatchEvent(new Event('change'))
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    } catch {
+      trySampleLink.textContent = 'try our Sample NDA →'
+      trySampleLink.style.pointerEvents = ''
+      setStatus('Could not load sample PDF.', true)
+    } finally {
+      trySampleLink.textContent = 'try our Sample NDA →'
+      trySampleLink.style.pointerEvents = ''
+    }
+  })
+}
+
 // ── Form submit ────────────────────────────────────────────────────────────────
 form.addEventListener('submit', async e => {
   e.preventDefault()
@@ -249,6 +276,102 @@ window.filterRisks = function (level, btnElement) {
   }
 }
 
+// ── Word Diff Engine (LCS-based, no external library) ──────────────────────
+// Returns HTML with <del> (removed) and <ins> (added) spans
+function computeWordDiff(original, revised) {
+  const aWords = original.split(/\s+/)
+  const bWords = revised.split(/\s+/)
+  const m = aWords.length, n = bWords.length
+  // LCS DP table
+  const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0))
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = aWords[i-1] === bWords[j-1] ? dp[i-1][j-1] + 1 : Math.max(dp[i-1][j], dp[i][j-1])
+  // Backtrack
+  const ops = []
+  let i = m, j = n
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && aWords[i-1] === bWords[j-1]) { ops.unshift({ type: 'eq', val: aWords[i-1] }); i--; j-- }
+    else if (j > 0 && (i === 0 || dp[i][j-1] >= dp[i-1][j])) { ops.unshift({ type: 'ins', val: bWords[j-1] }); j-- }
+    else { ops.unshift({ type: 'del', val: aWords[i-1] }); i-- }
+  }
+  // Group consecutive ops for cleaner output
+  return ops.map(op => {
+    const esc = escapeHtml(op.val)
+    if (op.type === 'eq')  return esc
+    if (op.type === 'del') return `<del class="diff-del">${esc}</del>`
+    if (op.type === 'ins') return `<ins class="diff-ins">${esc}</ins>`
+  }).join(' ')
+}
+
+// ── Negotiation Checklist Renderer ─────────────────────────────────────
+function renderNegotiationChecklist(risks) {
+  if (!risks.length) return ''
+  const levelOrder = { critical: 0, high: 1, medium: 2, low: 3 }
+  const sorted = [...risks].sort((a, b) => (levelOrder[a.level] ?? 4) - (levelOrder[b.level] ?? 4))
+  const items = sorted.map((r, idx) => {
+    const lvlLabel  = { critical: '🔴 Critical', high: '🟠 High', medium: '🟡 Medium', low: '🟢 Low' }[r.level] ?? r.level
+    const lvlClass  = { critical: 'checklist-critical', high: 'checklist-high', medium: 'checklist-medium', low: 'checklist-low' }[r.level] ?? ''
+    return `
+      <label class="checklist-item" for="chk-${idx}">
+        <input type="checkbox" id="chk-${idx}" class="checklist-checkbox">
+        <div class="checklist-item-body">
+          <div class="checklist-topline">
+            <span class="checklist-badge ${lvlClass}">${lvlLabel}</span>
+            <span class="checklist-ref">§${escapeHtml(r.sectionId ?? '')} &middot; Page ${r.pageNumber ?? '?'}</span>
+          </div>
+          <div class="checklist-action">${escapeHtml(r.recommendation)}</div>
+        </div>
+      </label>`
+  }).join('')
+  return `
+    <div class="negotiation-checklist">
+      <div class="checklist-header">
+        <div class="checklist-header-left">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+          </svg>
+          Negotiation Action Checklist
+          <span class="checklist-count">${risks.length} item${risks.length !== 1 ? 's' : ''}</span>
+        </div>
+        <button class="checklist-email-btn" onclick="copyNegotiationEmail()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+          Copy as Email Draft
+        </button>
+      </div>
+      <div class="checklist-list">${items}</div>
+    </div>`
+}
+
+window.copyNegotiationEmail = function () {
+  const r = window.__lastReport
+  if (!r?.risks?.length) return
+  const levelOrder = { critical: 0, high: 1, medium: 2, low: 3 }
+  const sorted = [...r.risks].sort((a, b) => (levelOrder[a.level] ?? 4) - (levelOrder[b.level] ?? 4))
+  const lines = [
+    'Subject: Contract Review — Action Items Requiring Resolution',
+    '',
+    'Dear [Counterparty Name],',
+    '',
+    'Following our review of the attached agreement, we have identified the following',
+    'items that require discussion and resolution before we can proceed to execution:',
+    '',
+    ...sorted.map((r, i) => `${i + 1}. [${r.level.toUpperCase()}] Section §${r.sectionId ?? ''} (Page ${r.pageNumber ?? '?'}) — ${r.recommendation}`),
+    '',
+    'We are happy to discuss any of these points and look forward to reaching a mutually',
+    'acceptable resolution.',
+    '',
+    'Best regards,',
+    '[Your Name]',
+  ]
+  navigator.clipboard.writeText(lines.join('\n')).then(() => {
+    setStatus('Negotiation email draft copied to clipboard.')
+    setTimeout(() => setStatus(''), 2500)
+  })
+}
+
 // ── Report rendering ───────────────────────────────────────────────────────────
 function renderReport(report) {
   window.__lastReport = report
@@ -309,6 +432,9 @@ function renderReport(report) {
       <div class="summary-body">${formatSummary(report.summary)}</div>
     </div>
 
+    <!-- Negotiation Action Checklist -->
+    ${renderNegotiationChecklist(risks)}
+
     <!-- Risk Level Filter Tabs -->
     <div class="section-label">Identified Liabilities</div>
     
@@ -333,7 +459,7 @@ function renderReport(report) {
     <!-- Risk Flags List -->
     <div class="risks-section">
       ${risks.length
-        ? risks.map(renderRiskCard).join('')
+        ? risks.map((r, idx) => renderRiskCard(r, idx, report.clauses ?? [])).join('')
         : `<div class="no-risks-card"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg><span>No risk flags identified — this contract layout appears compliant.</span></div>`
       }
       <!-- Filter placeholder when all items in standard categories are filtered out -->
@@ -362,6 +488,10 @@ function renderReport(report) {
       <button class="btn" onclick="copyMarkdownReport()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
         Copy as Markdown
+      </button>
+      <button class="btn" onclick="printReport()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Print Report
       </button>
     </div>
   `
@@ -437,21 +567,92 @@ function getVerdict(topLevel, riskCount) {
   }
 }
 
-// ── Risk card renderer ──────────────────────────────────────────────────────────
-function renderRiskCard(risk) {
+// ── Risk card renderer ────────────────────────────────────────────────────────
+function renderRiskCard(risk, riskIdx, clauses) {
   const level = risk.level ?? 'medium'
   const levelLabel = { critical: '🔴 Critical', high: '🟠 High', medium: '🟡 Medium', low: '🟢 Low' }[level] ?? level
+  const matchedClause = (clauses ?? []).find(c => c.clauseId === risk.clauseId)
+  const rawClauseText = matchedClause?.rawText ?? ''
+
+  const comparisonPanel = (risk.precedent && rawClauseText) ? `
+    <div class="clause-comparison">
+      <div class="comparison-header">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>
+        </svg>
+        Compare with Industry Standard
+      </div>
+      <div class="comparison-columns">
+        <div class="comparison-col col-yours">
+          <div class="comparison-col-label">Your Clause</div>
+          <div class="comparison-col-text">${escapeHtml(rawClauseText)}</div>
+        </div>
+        <div class="comparison-col col-standard">
+          <div class="comparison-col-label">Industry Standard</div>
+          <div class="comparison-col-text">${escapeHtml(risk.precedent)}</div>
+        </div>
+      </div>
+    </div>` : (risk.precedent ? `
+    <div class="precedent-box">
+      <div class="precedent-label">
+        <svg width="12" height="12" class="precedent-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v1"/>
+          <path d="M18 8h4a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-4"/>
+          <circle cx="6" cy="12" r="2"/><circle cx="14" cy="12" r="2"/>
+        </svg>
+        Precedent Benchmark Language
+      </div>
+      "${escapeHtml(risk.precedent)}"
+    </div>` : '')
+
+  const chips = ['Make it mutual', 'Add a liability cap', 'Shorten notice period', 'Add termination for convenience', 'Remove exclusivity']
+  const chipsHtml = chips.map(c =>
+    `<button class="copilot-chip" onclick="setCopilotInstruction(${riskIdx}, '${c.replace(/'/g, "\\'")}')">${ c}</button>`
+  ).join('')
+
+  const copilotPanel = rawClauseText ? `
+    <div class="copilot-panel" id="copilot-panel-${riskIdx}">
+      <div class="copilot-panel-header">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+        </svg>
+        AI Counter-Proposal Copilot
+        <span class="copilot-badge">Powered by Gemma</span>
+      </div>
+      <div class="copilot-chips">${chipsHtml}</div>
+      <div class="copilot-input-row">
+        <input
+          type="text"
+          id="copilot-input-${riskIdx}"
+          class="copilot-input"
+          placeholder="e.g. Limit liability to ₹50,000 and make it mutual…"
+        />
+        <button class="copilot-draft-btn" id="copilot-btn-${riskIdx}" onclick="draftCounterProposal(${riskIdx})">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+          Draft
+        </button>
+      </div>
+      <div class="copilot-result" id="copilot-result-${riskIdx}" style="display:none">
+        <div class="copilot-result-header">
+          <span>Tracked-Change View</span>
+          <button class="copilot-copy-btn" onclick="copyCopilotText(${riskIdx})">Copy Revised</button>
+        </div>
+        <div class="copilot-diff" id="copilot-diff-${riskIdx}"></div>
+        <div class="copilot-revised-raw" id="copilot-revised-${riskIdx}" style="display:none"></div>
+      </div>
+    </div>` : ''
 
   return `
-    <div class="risk-card level-${level}">
+    <div class="risk-card level-${level}" data-risk-idx="${riskIdx}">
       <div class="risk-topline">
         <span class="badge ${level}">${levelLabel}</span>
         ${risk.clauseId ? `<span class="badge type">${formatType(risk.clauseId.split('-')[0])}</span>` : ''}
-        <span class="risk-location">Section ${escapeHtml(risk.sectionId ?? '')} · Page ${risk.pageNumber ?? '?'}</span>
+        <span class="risk-location">Section ${escapeHtml(risk.sectionId ?? '')} &middot; Page ${risk.pageNumber ?? '?'}</span>
       </div>
       <p class="risk-description">${escapeHtml(risk.description)}</p>
       
-      <!-- Recommendation -->
       <div class="risk-recommendation">
         <svg width="14" height="14" class="rec-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1 .3 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/>
@@ -460,27 +661,77 @@ function renderRiskCard(risk) {
         </svg>
         <span class="rec-text"><strong>Recommendation:</strong> ${escapeHtml(risk.recommendation)}</span>
       </div>
-      
-      <!-- Standard Precedent -->
-      ${risk.precedent ? `
-        <div class="precedent-box">
-          <div class="precedent-label">
-            <svg width="12" height="12" class="precedent-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v1"/>
-              <path d="M18 8h4a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-4"/>
-              <circle cx="6" cy="12" r="2"/>
-              <circle cx="14" cy="12" r="2"/>
-            </svg>
-            Precedent Benchmark Language
-          </div>
-          "${escapeHtml(risk.precedent)}"
-        </div>
-      ` : ''}
+
+      ${comparisonPanel}
+      ${copilotPanel}
     </div>
   `
 }
 
+// ── Counter-Proposal Copilot Handlers ─────────────────────────────────────────
+window.setCopilotInstruction = function(riskIdx, text) {
+  const input = document.getElementById(`copilot-input-${riskIdx}`)
+  if (input) { input.value = text; input.focus() }
+}
+
+window.draftCounterProposal = async function(riskIdx) {
+  const report = window.__lastReport
+  if (!report) return
+  const risks = [...(report.risks ?? [])].sort((a, b) => riskRank[b.level] - riskRank[a.level])
+  const risk = risks[riskIdx]
+  if (!risk) return
+
+  const matchedClause = (report.clauses ?? []).find(c => c.clauseId === risk.clauseId)
+  const clauseText = matchedClause?.rawText ?? ''
+  const userInstructions = document.getElementById(`copilot-input-${riskIdx}`)?.value ?? ''
+
+  const btn    = document.getElementById(`copilot-btn-${riskIdx}`)
+  const result = document.getElementById(`copilot-result-${riskIdx}`)
+  const diffEl = document.getElementById(`copilot-diff-${riskIdx}`)
+  const rawEl  = document.getElementById(`copilot-revised-${riskIdx}`)
+
+  if (!clauseText) { setStatus('No clause text available for this risk flag.', true); return }
+  if (btn) { btn.disabled = true; btn.textContent = 'Drafting…' }
+  if (result) result.style.display = 'none'
+
+  try {
+    const res = await fetch('/api/refine', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clauseText, riskDescription: risk.description, userInstructions }),
+    })
+    const data = await res.json()
+    if (!res.ok || data.error) throw new Error(data.error || 'Drafting failed.')
+
+    const revisedText = data.revisedText
+    if (diffEl)  diffEl.innerHTML = computeWordDiff(clauseText, revisedText)
+    if (rawEl)   rawEl.textContent = revisedText
+    if (result) result.style.display = 'block'
+  } catch (err) {
+    setStatus(err.message || 'Failed to generate counter-proposal.', true)
+  } finally {
+    if (btn) {
+      btn.disabled = false
+      btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Draft`
+    }
+  }
+}
+
+window.copyCopilotText = function(riskIdx) {
+  const rawEl = document.getElementById(`copilot-revised-${riskIdx}`)
+  if (!rawEl?.textContent) return
+  navigator.clipboard.writeText(rawEl.textContent).then(() => {
+    setStatus('Revised clause copied to clipboard.')
+    setTimeout(() => setStatus(''), 2000)
+  })
+}
+
+window.printReport = function() {
+  window.print()
+}
+
 // ── Clause groups accordions ───────────────────────────────────────────────────
+
 function renderClauseGroups(clauses, risks) {
   if (!clauses.length) return '<p style="color:var(--ink-muted);font-size:0.9rem">No agreement clauses extracted.</p>'
 

@@ -13,6 +13,11 @@ const publicDir = path.resolve(__dirname, '../../public')
 app.use(express.json())
 app.use(express.static(publicDir))
 
+// Serve sample NDA for quick-try onboarding
+app.get('/sample-nda.pdf', (_req, res) => {
+  res.sendFile(path.resolve(__dirname, '../../sample-nda.pdf'))
+})
+
 app.use((_req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

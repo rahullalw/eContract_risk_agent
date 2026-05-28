@@ -19,6 +19,7 @@ import { logStep }             from '../observability/telemetry.js'
 // Import queue, caching, and concurrency systems
 import { createJob, updateJob, acquireSlot, releaseSlot, getQueueStats } from './jobQueue.js'
 import { getFileHash, getCachedReport, cacheReport } from '../local/reportCache.js'
+import { geminiClient, CHAT_MODEL } from '../local/geminiClient.js'
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -177,3 +178,44 @@ analyzeRouter.post('/analyze', upload.single('contract'), async (req: Request, r
     }
   })
 })
+
+// ── AI Counter-Proposal Clause Drafter ───────────────────────────────────────
+analyzeRouter.post('/refine', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { clauseText, riskDescription, userInstructions } = req.body
+    if (!clauseText) {
+      res.status(400).json({ error: 'clauseText is required.' })
+      return
+    }
+
+    const systemPrompt = `You are a world-class commercial corporate lawyer. Your job is to draft a revised, legally sound, and commercial counter-proposal for a risky clause in a contract.
+Focus purely on writing the professional, polished counter-proposal clause. Do NOT include introductory text (like "Here is the revised clause:"), conversational filler, explanations, markdown code block wrappers (like \`\`\` or \`\`\`html), or notes. Output ONLY the drafted clause text itself. Keep it commercial, clear, and ready to drop into an agreement.`
+
+    const userPrompt = `Risky Clause Text:
+"${clauseText}"
+
+Risk Description:
+${riskDescription || 'N/A'}
+
+User's Specific Refinement Goal:
+"${userInstructions || 'Make the clause more balanced and standard.'}"
+
+Please draft the revised clause text now:`
+
+    const completion = await geminiClient.chat.completions.create({
+      model: CHAT_MODEL,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      temperature: 0.2,
+      max_tokens: 1024,
+    })
+
+    const revisedText = completion.choices[0]?.message?.content?.trim() || ''
+    res.json({ revisedText })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to refine clause.' })
+  }
+})
+

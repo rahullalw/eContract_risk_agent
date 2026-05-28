@@ -2227,3 +2227,512 @@ h1 {
   .contract-doc-card { max-width: 100%; }
 }
 
+/* ════════════════════════════════════════════════════════════════════════
+   FEATURE: QUICK-TRY SAMPLE NDA LINK
+   ════════════════════════════════════════════════════════════════════════ */
+.try-sample-text {
+  margin-top: 6px;
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+  text-align: center;
+}
+.try-sample-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s, opacity 0.2s;
+  border-bottom: 1px dashed currentColor;
+}
+.try-sample-link:hover {
+  opacity: 0.8;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   FEATURE: NEGOTIATION ACTION CHECKLIST
+   ════════════════════════════════════════════════════════════════════════ */
+.negotiation-checklist {
+  background: linear-gradient(135deg, rgba(124,58,237,0.06) 0%, rgba(79,70,229,0.04) 100%);
+  border: 1px solid rgba(124,58,237,0.2);
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-bottom: 20px;
+}
+.checklist-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.checklist-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.checklist-count {
+  font-size: 0.73rem;
+  font-weight: 600;
+  background: rgba(124,58,237,0.15);
+  color: #7c3aed;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+.checklist-email-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: rgba(124,58,237,0.12);
+  border: 1px solid rgba(124,58,237,0.25);
+  border-radius: 8px;
+  color: #7c3aed;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.checklist-email-btn:hover {
+  background: rgba(124,58,237,0.22);
+  transform: translateY(-1px);
+}
+.checklist-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.checklist-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.checklist-item:hover { background: rgba(255,255,255,0.07); }
+.checklist-checkbox {
+  margin-top: 2px;
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  accent-color: #7c3aed;
+  cursor: pointer;
+}
+.checklist-item-body { flex: 1; min-width: 0; }
+.checklist-topline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+.checklist-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+.checklist-critical { background: rgba(239,68,68,0.15);  color: #dc2626; }
+.checklist-high     { background: rgba(249,115,22,0.15); color: #ea580c; }
+.checklist-medium   { background: rgba(245,158,11,0.15); color: #d97706; }
+.checklist-low      { background: rgba(34,197,94,0.15);  color: #16a34a; }
+.checklist-ref {
+  font-size: 0.7rem;
+  color: var(--ink-muted);
+  margin-left: auto;
+}
+.checklist-action {
+  font-size: 0.82rem;
+  color: var(--ink-sub);
+  line-height: 1.45;
+}
+.checklist-item input:checked ~ .checklist-item-body .checklist-action {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   FEATURE: CLAUSE vs PRECEDENT SIDE-BY-SIDE COMPARISON
+   ════════════════════════════════════════════════════════════════════════ */
+.clause-comparison {
+  margin-top: 14px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.09);
+}
+.comparison-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 14px;
+  background: rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.comparison-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+@media (max-width: 700px) {
+  .comparison-columns { grid-template-columns: 1fr; }
+}
+.comparison-col {
+  padding: 14px;
+}
+.col-yours {
+  background: rgba(239,68,68,0.06);
+  border-right: 1px solid rgba(255,255,255,0.07);
+}
+.col-standard {
+  background: rgba(34,197,94,0.06);
+}
+.comparison-col-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 8px;
+}
+.col-yours .comparison-col-label    { color: #ef4444; }
+.col-standard .comparison-col-label { color: #22c55e; }
+.comparison-col-text {
+  font-size: 0.78rem;
+  color: var(--ink-sub);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   FEATURE: AI COUNTER-PROPOSAL COPILOT PANEL
+   ════════════════════════════════════════════════════════════════════════ */
+.copilot-panel {
+  margin-top: 14px;
+  background: linear-gradient(135deg, rgba(16,185,129,0.05) 0%, rgba(6,182,212,0.04) 100%);
+  border: 1px solid rgba(16,185,129,0.2);
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+.copilot-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 12px;
+  letter-spacing: 0.02em;
+}
+.copilot-badge {
+  margin-left: auto;
+  font-size: 0.62rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  background: rgba(16,185,129,0.15);
+  color: #10b981;
+  border-radius: 20px;
+  letter-spacing: 0;
+}
+.copilot-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.copilot-chip {
+  padding: 4px 11px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px;
+  font-size: 0.72rem;
+  color: var(--ink-sub);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.copilot-chip:hover {
+  background: rgba(16,185,129,0.1);
+  border-color: rgba(16,185,129,0.35);
+  color: #10b981;
+}
+.copilot-input-row {
+  display: flex;
+  gap: 8px;
+}
+.copilot-input {
+  flex: 1;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  color: var(--ink);
+  font-size: 0.8rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+  min-width: 0;
+}
+.copilot-input:focus {
+  border-color: rgba(16,185,129,0.4);
+}
+.copilot-input::placeholder { color: var(--ink-muted); }
+.copilot-draft-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.copilot-draft-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16,185,129,0.35);
+}
+.copilot-draft-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.copilot-result {
+  margin-top: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.1);
+  overflow: hidden;
+  animation: fadeSlideIn 0.3s ease;
+}
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.copilot-result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.copilot-copy-btn {
+  padding: 4px 10px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px;
+  font-size: 0.7rem;
+  color: var(--ink-sub);
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 600;
+}
+.copilot-copy-btn:hover { background: rgba(255,255,255,0.12); }
+.copilot-diff {
+  padding: 14px 16px;
+  font-size: 0.82rem;
+  line-height: 1.7;
+  color: var(--ink-sub);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+/* Inline diff tokens */
+del.diff-del {
+  background: rgba(239,68,68,0.18);
+  color: #ef4444;
+  text-decoration: line-through;
+  border-radius: 3px;
+  padding: 0 2px;
+}
+ins.diff-ins {
+  background: rgba(34,197,94,0.18);
+  color: #22c55e;
+  text-decoration: none;
+  border-radius: 3px;
+  padding: 0 2px;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   FEATURE: PRINT / EXPORT STYLES
+   ════════════════════════════════════════════════════════════════════════ */
+.print-only { display: none; }
+
+@media print {
+  /* Hide all UI chrome */
+  .site-header,
+  .upload-panel,
+  .sidebar,
+  .hero-section,
+  .nav-link,
+  .dashboard-filter-bar,
+  .report-actions,
+  .copilot-panel,
+  .try-sample-text,
+  .cached-badge,
+  .no-risks-placeholder,
+  .clause-toggle,
+  .float-notif,
+  #status-bar,
+  .progress-container {
+    display: none !important;
+  }
+
+  /* Show print-only elements */
+  .print-only { display: block !important; }
+
+  /* Full-width layout */
+  body {
+    background: #fff !important;
+    color: #111 !important;
+    font-size: 10pt;
+  }
+  .main-layout,
+  .results-panel,
+  #view-analyzer {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  #results {
+    padding: 0 !important;
+  }
+
+  /* Print header */
+  #results::before {
+    content: "eContract AI — Risk Audit Report";
+    display: block;
+    font-size: 18pt;
+    font-weight: 800;
+    color: #111;
+    border-bottom: 2pt solid #111;
+    padding-bottom: 8pt;
+    margin-bottom: 16pt;
+  }
+
+  /* Verdict banner — print safe */
+  .verdict-banner {
+    background: #f5f5f5 !important;
+    color: #111 !important;
+    border: 1.5pt solid #ccc !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+    margin-bottom: 14pt;
+  }
+  .verdict-title   { color: #111 !important; }
+  .verdict-sub     { color: #444 !important; }
+  .gauge-val       { color: #111 !important; }
+
+  /* Risk cards */
+  .risk-card {
+    border: 1.5pt solid #ddd !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    page-break-inside: avoid;
+    margin-bottom: 10pt;
+    padding: 10pt 12pt !important;
+  }
+  .risk-card.level-critical { border-left: 4pt solid #dc2626 !important; }
+  .risk-card.level-high     { border-left: 4pt solid #ea580c !important; }
+  .risk-card.level-medium   { border-left: 4pt solid #d97706 !important; }
+  .risk-card.level-low      { border-left: 4pt solid #16a34a !important; }
+
+  /* Badges — print safe */
+  .badge {
+    background: #eee !important;
+    color: #333 !important;
+    border: 1pt solid #ccc !important;
+  }
+
+  /* Clause groups — force expand all */
+  .clause-group-body {
+    display: block !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  .clause-card {
+    box-shadow: none !important;
+    border: 1pt solid #e5e5e5 !important;
+    background: #fff !important;
+    page-break-inside: avoid;
+    margin-bottom: 6pt;
+  }
+
+  /* Negotiation checklist — print clean */
+  .negotiation-checklist {
+    background: #f9f9f9 !important;
+    border: 1.5pt solid #ccc !important;
+    border-radius: 0 !important;
+    page-break-inside: avoid;
+    margin-bottom: 14pt;
+  }
+  .checklist-email-btn { display: none !important; }
+  .checklist-item {
+    border: 1pt solid #e5e5e5 !important;
+    background: #fff !important;
+    page-break-inside: avoid;
+  }
+
+  /* Clause comparison — print clean */
+  .clause-comparison {
+    border: 1.5pt solid #ddd !important;
+    page-break-inside: avoid;
+  }
+  .col-yours    { background: #fff5f5 !important; }
+  .col-standard { background: #f0fff4 !important; }
+
+  /* Section labels */
+  .section-label {
+    font-size: 10pt;
+    font-weight: 800;
+    color: #111 !important;
+    border-bottom: 1pt solid #ccc;
+    padding-bottom: 4pt;
+    margin: 14pt 0 8pt;
+    page-break-after: avoid;
+  }
+
+  /* Executive summary */
+  .executive-summary {
+    background: #f9f9f9 !important;
+    border: 1pt solid #e5e5e5 !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+  }
+
+  /* Page breaks between major sections */
+  .clauses-section { page-break-before: always; }
+
+  /* Footer disclaimer on every page */
+  @page {
+    margin: 18mm 15mm;
+    @bottom-center {
+      content: "This report is AI-generated and is not legal advice. Verify all findings with a qualified lawyer.";
+      font-size: 7pt;
+      color: #888;
+    }
+  }
+}

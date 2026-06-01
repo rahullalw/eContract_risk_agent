@@ -125,6 +125,19 @@ dropzone.addEventListener('drop', e => {
 })
 
 // ── Quick-Try Sample NDA ────────────────────────────────────────────────
+window.__resetSampleLinks = function() {
+  const trySampleLink = document.querySelector('#try-sample-link')
+  const heroTrySampleBtn = document.querySelector('#hero-try-sample-btn')
+  if (trySampleLink) {
+    trySampleLink.textContent = 'try our Sample NDA →'
+    trySampleLink.style.pointerEvents = ''
+  }
+  if (heroTrySampleBtn) {
+    heroTrySampleBtn.textContent = 'Try Sample Contract \u2192'
+    heroTrySampleBtn.disabled = false
+  }
+}
+
 async function loadAndAnalyzeSample() {
   const trySampleLink = document.querySelector('#try-sample-link')
   const heroTrySampleBtn = document.querySelector('#hero-try-sample-btn')
@@ -141,23 +154,67 @@ async function loadAndAnalyzeSample() {
   }
 
   setSampleLoading(true)
-  switchView('analyze') // Transition immediately to analyzer dashboard
+  switchView('analyze')
+
+  results.innerHTML = `
+    <div class="empty-state">
+      <div class="empty-art-svg" style="animation: analyzing-pulse 1.8s infinite ease-in-out;">
+        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="w-16 h-16 text-muted" style="color:var(--primary);">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+          <polyline points="10 9 9 9 8 9"/>
+        </svg>
+      </div>
+      <h2 class="empty-title">Analyzing Sample NDA...</h2>
+      <p class="empty-copy">
+        Please wait while our specialized AI agents extract legal clauses and calculate compliance risks.
+      </p>
+    </div>
+  `;
+
+  const STEPS = [
+    [0,  'ocr',       'Preparing sample NDA…'],
+    [20, 'ocr',       'Extracting clause text…'],
+    [45, 'analysis',  'Classifying contract clauses…'],
+    [70, 'analysis',  'Scoring liability risks…'],
+    [90, 'verifying', 'Generating audit summary…'],
+  ]
+
+  // Kick off fetch and minimum animation time in parallel
+  const fetchPromise = fetch('/api/sample-analysis').then(r => {
+    if (!r.ok) throw new Error('Failed to analyze sample contract.')
+    return r.json()
+  })
+
+  const timingPromise = new Promise(resolve => {
+    let i = 0
+    const next = () => {
+      if (i >= STEPS.length) return
+      const [pct, step, msg] = STEPS[i++]
+      showProgress(pct, step, msg)
+      if (i < STEPS.length) {
+        const delays = [1200, 1600, 2000, 1700]
+        setTimeout(next, delays[i - 1])
+      }
+    }
+    next()
+    setTimeout(resolve, 7500) // minimum animation of 7.5s
+  })
 
   try {
-    const response = await fetch('/sample-nda.pdf')
-    if (!response.ok) throw new Error('Failed to fetch sample')
-    const blob = await response.blob()
-    const file = new File([blob], 'sample-nda.pdf', { type: 'application/pdf' })
-    const dt = new DataTransfer()
-    dt.items.add(file)
-    fileInput.files = dt.files
-    fileInput.dispatchEvent(new Event('change'))
-    
-    // Trigger submit
-    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    const [result] = await Promise.all([fetchPromise, timingPromise])
+    showProgress(100, 'completed', 'Analysis complete!')
+    window.__lastReportFilename = 'sample-nda.pdf'
+    renderReport(result)
+    setStatus('✅ Sample NDA analysis loaded.')
+    HistoryDB.save(result, 'sample-nda.pdf').catch(() => {})
   } catch (err) {
-    setSampleLoading(false)
-    setStatus('Could not load sample contract PDF.', true)
+    setStatus(err.message || 'Could not load sample analysis. Please try again.', true)
+  } finally {
+    hideProgress()
+    window.__resetSampleLinks()
   }
 }
 
@@ -193,6 +250,24 @@ form.addEventListener('submit', async e => {
   hideQueueInfo()
   showProgress(0, 'ocr', 'Uploading agreement…')
 
+  results.innerHTML = `
+    <div class="empty-state">
+      <div class="empty-art-svg" style="animation: analyzing-pulse 1.8s infinite ease-in-out;">
+        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="w-16 h-16 text-muted" style="color:var(--primary);">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+          <polyline points="10 9 9 9 8 9"/>
+        </svg>
+      </div>
+      <h2 class="empty-title">Auditing Contract Obligations...</h2>
+      <p class="empty-copy">
+        Our multi-agent legal reasoning pipelines are auditing your agreement copy. This will take under 15 seconds.
+      </p>
+    </div>
+  `;
+
   try {
     const res = await fetch('/api/analyze', { method: 'POST', body })
     const payload = await res.json()
@@ -204,6 +279,7 @@ form.addEventListener('submit', async e => {
       setStatus('⚡ Analysis fetched instantly from local cache.')
       hideProgress()
       setLoading(false)
+      window.__resetSampleLinks?.()
       // Also save to local history on cache hit (different filename, same data)
       HistoryDB.save(payload, fname).catch(() => {})
       return
@@ -239,6 +315,7 @@ function connectSSE(jobId) {
 
       if (data.status === 'completed') {
         es.close(); hideProgress(); setLoading(false)
+        window.__resetSampleLinks?.()
         if (data.result) {
           const fname = fileInput.files?.[0]?.name ?? 'contract.pdf'
           window.__lastReportFilename = fname
@@ -250,6 +327,7 @@ function connectSSE(jobId) {
 
       if (data.status === 'failed') {
         es.close(); hideProgress(); setLoading(false)
+        window.__resetSampleLinks?.()
         renderError(data.message)
         setStatus(data.message, true)
       }
@@ -906,11 +984,69 @@ function generatePrintDocument(report) {
       color: #0f172a;
       background: #ffffff;
       margin: 0;
-      padding: 40px;
+      padding: 0;
       line-height: 1.6;
       font-size: 14px;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
+    }
+    .print-content {
+      padding: 40px;
+    }
+    .action-bar {
+      background: #0f172a;
+      color: #ffffff;
+      padding: 12px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      border-bottom: 1px solid #1e293b;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    .action-bar-brand {
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: -0.01em;
+      color: #f8fafc;
+    }
+    .action-bar-btns {
+      display: flex;
+      gap: 12px;
+    }
+    .btn-download-pdf {
+      background: #4f46e5;
+      color: #ffffff;
+      border: none;
+      padding: 8px 16px;
+      font-weight: 600;
+      font-size: 13px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+    .btn-download-pdf:hover {
+      background: #4338ca;
+    }
+    .btn-close-print {
+      background: #334155;
+      color: #f1f5f9;
+      border: none;
+      padding: 8px 16px;
+      font-weight: 600;
+      font-size: 13px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-close-print:hover {
+      background: #475569;
     }
     .header {
       border-bottom: 2px solid #4f46e5;
@@ -1196,16 +1332,30 @@ function generatePrintDocument(report) {
     
     @media print {
       body {
+        padding: 0;
+      }
+      .print-content {
         padding: 20px;
       }
       .page-break {
         page-break-before: always;
       }
+      .no-print {
+        display: none !important;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="header">
+  <div class="action-bar no-print">
+    <span class="action-bar-brand">eContract AI — Risk Audit Report</span>
+    <div class="action-bar-btns">
+      <button onclick="window.print()" class="btn-download-pdf">⬇ Download as PDF</button>
+      <button onclick="window.close()" class="btn-close-print">✕ Close</button>
+    </div>
+  </div>
+  <div class="print-content">
+    <div class="header">
     <div class="header-title-row">
       <div class="brand">eContract AI</div>
       <div class="report-badge">Risk Audit Report</div>
@@ -1272,14 +1422,7 @@ function generatePrintDocument(report) {
     <br><br>
     Generated by eContract AI. Confidential legal audit document.
   </div>
-
-  <script>
-    window.addEventListener('DOMContentLoaded', () => {
-      setTimeout(() => {
-        window.print();
-      }, 600);
-    });
-  </script>
+</div>
 </body>
 </html>
   `;
@@ -1424,8 +1567,10 @@ window.downloadReportJSON = function () {
   const a = document.createElement('a')
   a.href = url
   a.download = `risk-report-${window.__lastReport.docId?.slice(0, 8) ?? 'export'}.json`
+  document.body.appendChild(a)
   a.click()
-  URL.revokeObjectURL(url)
+  document.body.removeChild(a)
+  setTimeout(() => URL.revokeObjectURL(url), 150)
 }
 
 window.copyReportSummary = function () {
@@ -1542,8 +1687,10 @@ window.downloadLocalReport = async function (id) {
     const a = document.createElement('a')
     a.href = url
     a.download = entry.filename
+    document.body.appendChild(a)
     a.click()
-    URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+    setTimeout(() => URL.revokeObjectURL(url), 150)
   } catch {}
 }
 

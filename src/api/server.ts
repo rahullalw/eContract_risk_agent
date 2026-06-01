@@ -4,6 +4,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { analyzeRouter } from './analyzeRoute.js'
 import { jobsRouter } from './jobsRoute.js'
+import { sampleRouter } from './sampleRoute.js'
 
 const app  = express()
 const PORT = Number(process.env.PORT ?? 3000)
@@ -39,6 +40,7 @@ app.get('/health', (_req, res) => {
 
 app.use('/api', analyzeRouter)
 app.use('/api', jobsRouter)
+app.use('/api', sampleRouter)
 
 app.listen(PORT, () => {
   const mem = process.memoryUsage()

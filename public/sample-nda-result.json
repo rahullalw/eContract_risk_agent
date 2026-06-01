@@ -1,0 +1,111 @@
+{
+  "docId": "7bb04ec6-591a-4a24-a0ad-170487de93e7",
+  "analysedAt": "2026-06-01T07:15:01.731Z",
+  "pages": 2,
+  "ocrConfidence": 1,
+  "clauses": [
+    {
+      "clauseId": "confidentiality-1",
+      "type": "confidentiality",
+      "rawText": "1. Definition of Confidential Information. For purposes of this Agreement, \"Confidential Information\" shall include all information or material that has or could have commercial value or other utility in the business in which Disclosing Party is engaged.",
+      "sectionId": "1",
+      "pageNumber": 1,
+      "summary": "Defines Confidential Information as material with commercial value or utility to the Disclosing Party's business."
+    },
+    {
+      "clauseId": "confidentiality-2",
+      "type": "confidentiality",
+      "rawText": "2. Exclusions from Confidential Information. Receiving Party's obligations under this Agreement do not extend to information that is: (a) publicly known at the time of disclosure or subsequently becomes publicly known through no fault of the Receiving Party; (b) discovered or created by the Receiving Party before disclosure by Disclosing Party; (c) learned by the Receiving Party through legitimate means other than from the Disclosing Party or Disclosing Party's representatives; or (d) is disclosed by Receiving Party with Disclosing Party's prior written approval.",
+      "sectionId": "2",
+      "pageNumber": 1,
+      "summary": "Lists exclusions from Confidential Information, including publicly known information, prior knowledge, information from third parties, and authorized disclosures."
+    },
+    {
+      "clauseId": "confidentiality-3",
+      "type": "confidentiality",
+      "rawText": "3. Obligations of Receiving Party. Receiving Party shall hold and maintain the Confidential Information in strictest confidence for the sole and exclusive benefit of the Disclosing Party. Receiving Party shall carefully restrict access to Confidential Information to employees, contractors and third parties as is reasonably required and shall require those persons to sign nondisclosure restrictions at least as protective as those in this Agreement.",
+      "sectionId": "3",
+      "pageNumber": 1,
+      "summary": "Outlines the Receiving Party's duty to maintain confidentiality, restrict access to authorized personnel, and ensure third parties sign equivalent nondisclosure agreements."
+    },
+    {
+      "clauseId": "termination-1",
+      "type": "termination",
+      "rawText": "4. Time Periods. The nondisclosure provisions of this Agreement shall survive the termination of this Agreement and Receiving Party's duty to hold Confidential Information in confidence shall remain in effect until the Confidential Information no longer qualifies as a trade secret or until Disclosing Party sends Receiving Party written notice releasing Receiving Party from this Agreement, whichever occurs first.",
+      "sectionId": "4",
+      "pageNumber": 1,
+      "summary": "Specifies that confidentiality obligations survive termination until the information is no longer a trade secret or the Disclosing Party provides a written release."
+    },
+    {
+      "clauseId": "other-1",
+      "type": "other",
+      "rawText": "6. Severability. If a court finds any provision of this Agreement invalid or unenforceable, the remainder of this Agreement shall be interpreted so as best to affect the intent of the parties.",
+      "sectionId": "6",
+      "pageNumber": 2,
+      "summary": "Standard severability clause ensuring the remainder of the agreement remains valid if one part is found unenforceable."
+    },
+    {
+      "clauseId": "other-2",
+      "type": "other",
+      "rawText": "7. Integration. This Agreement expresses the complete understanding of the parties with respect to the subject matter and supersedes all prior proposals, agreements, representations, and understandings. This Agreement may not be amended except in writing signed by both parties.",
+      "sectionId": "7",
+      "pageNumber": 2,
+      "summary": "Integration clause stating this is the entire agreement and requires written amendments."
+    },
+    {
+      "clauseId": "other-3",
+      "type": "other",
+      "rawText": "8. Waiver. The failure to exercise any right provided in this Agreement shall not be a waiver of prior or subsequent rights.",
+      "sectionId": "8",
+      "pageNumber": 2,
+      "summary": "States that failure to enforce a right does not constitute a waiver of that or future rights."
+    },
+    {
+      "clauseId": "other-4",
+      "type": "other",
+      "rawText": "9. Notice of Immunity. Employee is provided notice that an individual shall not be held criminally or civilly liable under any federal or state trade secret law for the disclosure of a trade secret that is made (i) in confidence to a federal, state, or local government official, either directly or indirectly, or to an attorney; and (ii) solely for the purpose of reporting or investigating a suspected violation of law...",
+      "sectionId": "9",
+      "pageNumber": 2,
+      "summary": "Provides notice of immunity for whistleblowers disclosing trade secrets to government officials or attorneys for reporting suspected legal violations."
+    }
+  ],
+  "risks": [
+    {
+      "clauseId": "confidentiality-1",
+      "sectionId": "1",
+      "pageNumber": 1,
+      "level": "high",
+      "description": "The definition of Confidential Information is overly broad and vague, potentially capturing information that is not actually confidential or proprietary, which creates ambiguity in enforcement.",
+      "precedent": "Confidential Information means all non-public, proprietary, or confidential information disclosed by the Disclosing Party, which is marked as 'confidential' or should reasonably be understood to be confidential given the nature of the information.",
+      "recommendation": "Narrow the definition to include only information marked as confidential or that which a reasonable person would consider confidential."
+    },
+    {
+      "clauseId": "termination-1",
+      "sectionId": "4",
+      "pageNumber": 1,
+      "level": "critical",
+      "description": "The survival clause is indefinite and tied to the status of a 'trade secret,' which is difficult to determine objectively and creates perpetual liability for the Receiving Party.",
+      "precedent": "The obligations of confidentiality shall survive for a period of [X] years following the termination or expiration of this Agreement.",
+      "recommendation": "Replace the indefinite term with a fixed sunset period (e.g., 2-3 years) to provide legal certainty."
+    },
+    {
+      "clauseId": "other-1",
+      "sectionId": "6",
+      "pageNumber": 2,
+      "level": "medium",
+      "description": "The severability clause lacks a 'blue-pencil' provision or a requirement to reform the contract to maintain the parties' original economic intent.",
+      "precedent": "If any provision is held invalid, the court shall modify such provision to the minimum extent necessary to make it enforceable while preserving the parties' original intent.",
+      "recommendation": "Add language allowing the court to reform the invalid provision to reflect the parties' original intent."
+    }
+  ],
+  "summary": "**Executive Summary: Risk Assessment**\n\nThis agreement presents significant legal exposure, primarily due to the **indefinite survival of confidentiality obligations**. Linking survival to the subjective status of \"trade secrets\" creates perpetual liability and enforcement uncertainty. \n\n**Key Risks:**\n*   **Critical:** Indefinite survival clause creates long-term, unquantifiable liability.\n*   **High:** Overly broad definition of Confidential Information invites disputes and complicates compliance.\n*   **Medium:** Severability clause lacks \"blue-pencil\" provisions, risking the loss of original economic intent if portions are invalidated.\n\n**Recommendation:** Define a fixed term for confidentiality obligations and narrow the definition of protected information to ensure objective, enforceable obligations.",
+  "agentSteps": 2,
+  "disclaimer": "This report is AI-generated. It is not legal advice. Verify all findings with a qualified lawyer.",
+  "_meta": {
+    "coveVerified": true,
+    "coveIssues": [],
+    "durationMs": 12390,
+    "cached": false,
+    "generatedAt": "2026-06-01T07:15:02.605Z"
+  }
+}

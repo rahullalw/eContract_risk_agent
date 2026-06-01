@@ -125,29 +125,57 @@ dropzone.addEventListener('drop', e => {
 })
 
 // ── Quick-Try Sample NDA ────────────────────────────────────────────────
+async function loadAndAnalyzeSample() {
+  const trySampleLink = document.querySelector('#try-sample-link')
+  const heroTrySampleBtn = document.querySelector('#hero-try-sample-btn')
+
+  const setSampleLoading = (loading) => {
+    if (trySampleLink) {
+      trySampleLink.textContent = loading ? 'Loading…' : 'try our Sample NDA →'
+      trySampleLink.style.pointerEvents = loading ? 'none' : ''
+    }
+    if (heroTrySampleBtn) {
+      heroTrySampleBtn.textContent = loading ? 'Analyzing Sample…' : 'Try Sample Contract \u2192'
+      heroTrySampleBtn.disabled = loading
+    }
+  }
+
+  setSampleLoading(true)
+  switchView('analyze') // Transition immediately to analyzer dashboard
+
+  try {
+    const response = await fetch('/sample-nda.pdf')
+    if (!response.ok) throw new Error('Failed to fetch sample')
+    const blob = await response.blob()
+    const file = new File([blob], 'sample-nda.pdf', { type: 'application/pdf' })
+    const dt = new DataTransfer()
+    dt.items.add(file)
+    fileInput.files = dt.files
+    fileInput.dispatchEvent(new Event('change'))
+    
+    // Trigger submit
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+  } catch (err) {
+    setSampleLoading(false)
+    setStatus('Could not load sample contract PDF.', true)
+  }
+}
+
 const trySampleLink = document.querySelector('#try-sample-link')
 if (trySampleLink) {
   trySampleLink.addEventListener('click', async e => {
     e.preventDefault()
     e.stopPropagation()
-    try {
-      trySampleLink.textContent = 'Loading…'
-      trySampleLink.style.pointerEvents = 'none'
-      const response = await fetch('/sample-nda.pdf')
-      const blob = await response.blob()
-      const file = new File([blob], 'sample-nda.pdf', { type: 'application/pdf' })
-      const dt = new DataTransfer(); dt.items.add(file)
-      fileInput.files = dt.files
-      fileInput.dispatchEvent(new Event('change'))
-      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
-    } catch {
-      trySampleLink.textContent = 'try our Sample NDA →'
-      trySampleLink.style.pointerEvents = ''
-      setStatus('Could not load sample PDF.', true)
-    } finally {
-      trySampleLink.textContent = 'try our Sample NDA →'
-      trySampleLink.style.pointerEvents = ''
-    }
+    await loadAndAnalyzeSample()
+  })
+}
+
+const heroTrySampleBtn = document.querySelector('#hero-try-sample-btn')
+if (heroTrySampleBtn) {
+  heroTrySampleBtn.addEventListener('click', async e => {
+    e.preventDefault()
+    e.stopPropagation()
+    await loadAndAnalyzeSample()
   })
 }
 
@@ -170,12 +198,13 @@ form.addEventListener('submit', async e => {
     const payload = await res.json()
 
     if (res.status === 200) {
+      const fname = fileInput.files?.[0]?.name ?? 'contract.pdf'
+      window.__lastReportFilename = fname
       renderReport(payload)
       setStatus('⚡ Analysis fetched instantly from local cache.')
       hideProgress()
       setLoading(false)
       // Also save to local history on cache hit (different filename, same data)
-      const fname = fileInput.files?.[0]?.name ?? 'contract.pdf'
       HistoryDB.save(payload, fname).catch(() => {})
       return
     }
@@ -212,6 +241,7 @@ function connectSSE(jobId) {
         es.close(); hideProgress(); setLoading(false)
         if (data.result) {
           const fname = fileInput.files?.[0]?.name ?? 'contract.pdf'
+          window.__lastReportFilename = fname
           renderReport(data.result)
           setStatus(`✅ Analysis completed in ${formatDuration(data.result._meta?.durationMs)}.`)
           HistoryDB.save(data.result, fname).catch(() => {})
@@ -334,12 +364,20 @@ function renderNegotiationChecklist(risks) {
           Negotiation Action Checklist
           <span class="checklist-count">${risks.length} item${risks.length !== 1 ? 's' : ''}</span>
         </div>
-        <button class="checklist-email-btn" onclick="copyNegotiationEmail()">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-          </svg>
-          Copy as Email Draft
-        </button>
+        <div class="checklist-header-right" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <input type="text" id="checklist-your-name" class="checklist-name-input" placeholder="Your Name" />
+          <input type="text" id="checklist-counterparty" class="checklist-name-input" placeholder="Counterparty Name" />
+          <button class="checklist-email-btn" onclick="copyNegotiationEmail()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            Copy Email
+          </button>
+          <button class="btn-primary-gmail" onclick="openInGmail()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:2px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            Open in Gmail &rarr;
+          </button>
+        </div>
       </div>
       <div class="checklist-list">${items}</div>
     </div>`
@@ -348,12 +386,16 @@ function renderNegotiationChecklist(risks) {
 window.copyNegotiationEmail = function () {
   const r = window.__lastReport
   if (!r?.risks?.length) return
+  
+  const yourName = document.getElementById('checklist-your-name')?.value || '[Your Name]'
+  const counterpartyName = document.getElementById('checklist-counterparty')?.value || '[Counterparty Name]'
+
   const levelOrder = { critical: 0, high: 1, medium: 2, low: 3 }
   const sorted = [...r.risks].sort((a, b) => (levelOrder[a.level] ?? 4) - (levelOrder[b.level] ?? 4))
   const lines = [
     'Subject: Contract Review — Action Items Requiring Resolution',
     '',
-    'Dear [Counterparty Name],',
+    `Dear ${counterpartyName},`,
     '',
     'Following our review of the attached agreement, we have identified the following',
     'items that require discussion and resolution before we can proceed to execution:',
@@ -364,12 +406,40 @@ window.copyNegotiationEmail = function () {
     'acceptable resolution.',
     '',
     'Best regards,',
-    '[Your Name]',
+    yourName,
   ]
   navigator.clipboard.writeText(lines.join('\n')).then(() => {
-    setStatus('Negotiation email draft copied to clipboard.')
-    setTimeout(() => setStatus(''), 2500)
+    showToast('Negotiation email draft copied to clipboard.')
   })
+}
+
+window.openInGmail = function() {
+  const r = window.__lastReport
+  if (!r?.risks?.length) return
+
+  const yourName = document.getElementById('checklist-your-name')?.value || '[Your Name]'
+  const counterpartyName = document.getElementById('checklist-counterparty')?.value || '[Counterparty Name]'
+
+  const levelOrder = { critical: 0, high: 1, medium: 2, low: 3 }
+  const sorted = [...r.risks].sort((a, b) => (levelOrder[a.level] ?? 4) - (levelOrder[b.level] ?? 4))
+  
+  const bodyIntro = `Dear ${counterpartyName},\n\nFollowing our review of the attached agreement, we have identified the following items that require discussion and resolution before we can proceed to execution:\n\n`;
+  const bodyItems = sorted.map((r, i) => `${i + 1}. [${r.level.toUpperCase()}] Section §${r.sectionId ?? ''} (Page ${r.pageNumber ?? '?'}) — ${r.recommendation}`).join('\n');
+  const bodyOutro = `\n\nWe are happy to discuss any of these points and look forward to reaching a mutually acceptable resolution.\n\nBest regards,\n${yourName}`;
+
+  let fullBody = bodyIntro + bodyItems + bodyOutro;
+  
+  if (fullBody.length > 1800) {
+    const trimmedItems = sorted.slice(0, 8).map((r, i) => `${i + 1}. [${r.level.toUpperCase()}] Section §${r.sectionId ?? ''} (Page ${r.pageNumber ?? '?'}) — ${r.recommendation}`).join('\n');
+    const note = `\n\n[Note: Action items list truncated for email length. ${sorted.length - 8} additional items are available in the full report.]`;
+    fullBody = bodyIntro + trimmedItems + note + bodyOutro;
+  }
+
+  const subject = "Contract Review — Action Items Requiring Resolution";
+  const gmailUrl = `https://mail.google.com/mail/?view=cm&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(fullBody)}`;
+  
+  window.open(gmailUrl, '_blank');
+  showToast('Opening Gmail compose tab...');
 }
 
 // ── Report rendering ───────────────────────────────────────────────────────────
@@ -571,10 +641,10 @@ function getVerdict(topLevel, riskCount) {
 function renderRiskCard(risk, riskIdx, clauses) {
   const level = risk.level ?? 'medium'
   const levelLabel = { critical: '🔴 Critical', high: '🟠 High', medium: '🟡 Medium', low: '🟢 Low' }[level] ?? level
-  const matchedClause = (clauses ?? []).find(c => c.clauseId === risk.clauseId)
+  const matchedClause = (clauses ?? []).find(c => c.clauseId === risk.clauseId) ?? (clauses ?? []).find(c => c.sectionId === risk.sectionId)
   const rawClauseText = matchedClause?.rawText ?? ''
 
-  const comparisonPanel = (risk.precedent && rawClauseText) ? `
+  const comparisonPanel = risk.precedent ? `
     <div class="clause-comparison">
       <div class="comparison-header">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -583,34 +653,30 @@ function renderRiskCard(risk, riskIdx, clauses) {
         Compare with Industry Standard
       </div>
       <div class="comparison-columns">
-        <div class="comparison-col col-yours">
-          <div class="comparison-col-label">Your Clause</div>
-          <div class="comparison-col-text">${escapeHtml(rawClauseText)}</div>
-        </div>
+        ${rawClauseText ? `
+          <div class="comparison-col col-yours">
+            <div class="comparison-col-label">Your Clause</div>
+            <div class="comparison-col-text">${escapeHtml(rawClauseText)}</div>
+          </div>
+        ` : `
+          <div class="comparison-col col-yours" style="background:#f8fafc; border-right:1px solid #e5e7eb;">
+            <div class="comparison-col-label" style="color:#64748b;">Your Clause</div>
+            <div class="comparison-col-text" style="color:var(--ink-muted); font-style:italic;">[Clause text not found in index. You can still paste it in the Copilot box below to draft revisions.]</div>
+          </div>
+        `}
         <div class="comparison-col col-standard">
           <div class="comparison-col-label">Industry Standard</div>
           <div class="comparison-col-text">${escapeHtml(risk.precedent)}</div>
         </div>
       </div>
-    </div>` : (risk.precedent ? `
-    <div class="precedent-box">
-      <div class="precedent-label">
-        <svg width="12" height="12" class="precedent-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v1"/>
-          <path d="M18 8h4a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-4"/>
-          <circle cx="6" cy="12" r="2"/><circle cx="14" cy="12" r="2"/>
-        </svg>
-        Precedent Benchmark Language
-      </div>
-      "${escapeHtml(risk.precedent)}"
-    </div>` : '')
+    </div>` : ''
 
   const chips = ['Make it mutual', 'Add a liability cap', 'Shorten notice period', 'Add termination for convenience', 'Remove exclusivity']
   const chipsHtml = chips.map(c =>
     `<button class="copilot-chip" onclick="setCopilotInstruction(${riskIdx}, '${c.replace(/'/g, "\\'")}')">${ c}</button>`
   ).join('')
 
-  const copilotPanel = rawClauseText ? `
+  const copilotPanel = `
     <div class="copilot-panel" id="copilot-panel-${riskIdx}">
       <div class="copilot-panel-header">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -619,6 +685,17 @@ function renderRiskCard(risk, riskIdx, clauses) {
         AI Counter-Proposal Copilot
         <span class="copilot-badge">Powered by Gemma</span>
       </div>
+      
+      ${!rawClauseText ? `
+        <div style="font-size:0.75rem; color:var(--ink-secondary); font-weight:600; margin-bottom:6px;">Paste the contract clause here to draft a counter-proposal using AI:</div>
+        <textarea
+          id="copilot-custom-clause-${riskIdx}"
+          class="copilot-input"
+          style="width:100%; height:70px; margin-bottom:10px; padding:8px 12px; border-radius:8px; border:1px solid #d1d5db; font-size:0.8rem; resize:vertical; display:block;"
+          placeholder="Paste original contract clause text here..."
+        ></textarea>
+      ` : ''}
+
       <div class="copilot-chips">${chipsHtml}</div>
       <div class="copilot-input-row">
         <input
@@ -637,12 +714,15 @@ function renderRiskCard(risk, riskIdx, clauses) {
       <div class="copilot-result" id="copilot-result-${riskIdx}" style="display:none">
         <div class="copilot-result-header">
           <span>Tracked-Change View</span>
-          <button class="copilot-copy-btn" onclick="copyCopilotText(${riskIdx})">Copy Revised</button>
+          <div style="display:flex; gap:6px;">
+            <button class="copilot-copy-btn" onclick="draftCounterProposal(${riskIdx})">&#x21BA; Regenerate</button>
+            <button class="copilot-copy-btn" onclick="copyCopilotText(${riskIdx})">Copy Revised</button>
+          </div>
         </div>
         <div class="copilot-diff" id="copilot-diff-${riskIdx}"></div>
         <div class="copilot-revised-raw" id="copilot-revised-${riskIdx}" style="display:none"></div>
       </div>
-    </div>` : ''
+    </div>`
 
   return `
     <div class="risk-card level-${level}" data-risk-idx="${riskIdx}">
@@ -681,8 +761,11 @@ window.draftCounterProposal = async function(riskIdx) {
   const risk = risks[riskIdx]
   if (!risk) return
 
-  const matchedClause = (report.clauses ?? []).find(c => c.clauseId === risk.clauseId)
-  const clauseText = matchedClause?.rawText ?? ''
+  const matchedClause = (report.clauses ?? []).find(c => c.clauseId === risk.clauseId) ?? (report.clauses ?? []).find(c => c.sectionId === risk.sectionId)
+  let clauseText = matchedClause?.rawText ?? ''
+  if (!clauseText) {
+    clauseText = document.getElementById(`copilot-custom-clause-${riskIdx}`)?.value ?? ''
+  }
   const userInstructions = document.getElementById(`copilot-input-${riskIdx}`)?.value ?? ''
 
   const btn    = document.getElementById(`copilot-btn-${riskIdx}`)
@@ -690,7 +773,7 @@ window.draftCounterProposal = async function(riskIdx) {
   const diffEl = document.getElementById(`copilot-diff-${riskIdx}`)
   const rawEl  = document.getElementById(`copilot-revised-${riskIdx}`)
 
-  if (!clauseText) { setStatus('No clause text available for this risk flag.', true); return }
+  if (!clauseText) { setStatus('Please paste the original clause text first to draft revisions.', true); return }
   if (btn) { btn.disabled = true; btn.textContent = 'Drafting…' }
   if (result) result.style.display = 'none'
 
@@ -707,6 +790,7 @@ window.draftCounterProposal = async function(riskIdx) {
     if (diffEl)  diffEl.innerHTML = computeWordDiff(clauseText, revisedText)
     if (rawEl)   rawEl.textContent = revisedText
     if (result) result.style.display = 'block'
+    showToast('Counter-proposal ready — review below')
   } catch (err) {
     setStatus(err.message || 'Failed to generate counter-proposal.', true)
   } finally {
@@ -721,13 +805,497 @@ window.copyCopilotText = function(riskIdx) {
   const rawEl = document.getElementById(`copilot-revised-${riskIdx}`)
   if (!rawEl?.textContent) return
   navigator.clipboard.writeText(rawEl.textContent).then(() => {
-    setStatus('Revised clause copied to clipboard.')
-    setTimeout(() => setStatus(''), 2000)
+    showToast('Revised clause copied to clipboard.')
   })
 }
 
+function generatePrintDocument(report) {
+  if (!report) return '';
+  const risks = [...(report.risks ?? [])].sort((a, b) => riskRank[b.level] - riskRank[a.level]);
+  const riskScore = computeRiskScore(risks);
+  const topLevel = risks[0]?.level ?? 'low';
+  const { verdictTitle, verdictSub } = getVerdict(topLevel, risks.length);
+  
+  // Format Date
+  const dateStr = formatDate(new Date(report.analysedAt || Date.now()).toISOString());
+
+  // Risks list HTML
+  const risksHtml = risks.map((risk, index) => {
+    const lvlLabel = { critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low' }[risk.level] ?? risk.level;
+    const clauseType = risk.clauseId ? formatType(risk.clauseId.split('-')[0]) : '';
+    const sectionStr = risk.sectionId ? `Section ${escapeHtml(risk.sectionId)}` : 'Section N/A';
+    const pageStr = risk.pageNumber ? `Page ${risk.pageNumber}` : 'Page ?';
+
+    const matchedClause = (report.clauses ?? []).find(c => c.clauseId === risk.clauseId) ?? (report.clauses ?? []).find(c => c.sectionId === risk.sectionId);
+    const originalText = matchedClause?.rawText ?? '';
+
+    return `
+      <div class="risk-card ${risk.level}">
+        <div class="risk-card-header">
+          <span class="risk-loc">${escapeHtml(sectionStr)} &middot; ${pageStr} ${clauseType ? `&middot; <strong>${clauseType}</strong>` : ''}</span>
+          <span class="risk-level-badge ${risk.level}">${lvlLabel}</span>
+        </div>
+        <div class="risk-card-body">
+          <div class="risk-desc">${escapeHtml(risk.description)}</div>
+          
+          <div class="risk-meta-box risk-recommendation">
+            <div class="box-title rec">Recommendation</div>
+            <div>${escapeHtml(risk.recommendation)}</div>
+          </div>
+          
+          ${originalText ? `
+            <div class="risk-meta-box original-clause">
+              <div class="box-title" style="color:#475569">Your Contract Clause</div>
+              <div style="font-family:monospace; font-size:11px; white-space:pre-wrap; margin-top:5px; background:rgba(0,0,0,0.02); padding:8px; border-radius:4px; border:1px solid #e2e8f0;">${escapeHtml(originalText)}</div>
+            </div>
+          ` : ''}
+
+          ${risk.precedent ? `
+            <div class="risk-meta-box risk-precedent">
+              <div class="box-title prec">Industry Standard Precedent Benchmark</div>
+              <div>"${escapeHtml(risk.precedent)}"</div>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Action plan list HTML
+  const actionPlanHtml = risks.map((r, i) => {
+    const lvlLabel = { critical: '🔴 Critical', high: '🟠 High', medium: '🟡 Medium', low: '🟢 Low' }[r.level] ?? r.level;
+    return `
+      <div class="action-plan-item">
+        <div class="action-number">${i + 1}</div>
+        <div class="action-content">
+          <div class="action-item-title">[${lvlLabel}] Section §${escapeHtml(r.sectionId ?? '')} (Page ${r.pageNumber ?? '?'})</div>
+          <div class="action-item-desc">${escapeHtml(r.recommendation)}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Clauses list HTML
+  const clausesHtml = (report.clauses ?? []).map(clause => {
+    const sectionStr = clause.sectionId ? `Section ${escapeHtml(clause.sectionId)}` : 'Section N/A';
+    const pageStr = clause.pageNumber ? `Page ${clause.pageNumber}` : 'Page ?';
+    return `
+      <div class="clause-card">
+        <div class="clause-header">
+          <span class="clause-type-badge">${formatType(clause.type ?? 'other')}</span>
+          <span>${escapeHtml(sectionStr)} &middot; ${pageStr}</span>
+        </div>
+        <div class="clause-summary">${escapeHtml(clause.summary)}</div>
+        ${clause.rawText ? `<div class="clause-text">${escapeHtml(clause.rawText)}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+
+  const disclaimerText = report.disclaimer || 'This report is AI-generated for analytical purposes and does not constitute formal legal advice. Verify all actions with qualified legal counsel.';
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>eContract AI Risk Audit Report — ${escapeHtml(window.__lastReportFilename || 'Contract')}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      color: #0f172a;
+      background: #ffffff;
+      margin: 0;
+      padding: 40px;
+      line-height: 1.6;
+      font-size: 14px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .header {
+      border-bottom: 2px solid #4f46e5;
+      padding-bottom: 20px;
+      margin-bottom: 30px;
+    }
+    .header-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand {
+      font-size: 24px;
+      font-weight: 800;
+      color: #4f46e5;
+      letter-spacing: -0.02em;
+    }
+    .report-badge {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      background: #f5f3ff;
+      color: #7c3aed;
+      padding: 6px 12px;
+      border-radius: 20px;
+      letter-spacing: 0.05em;
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin-top: 20px;
+      background: #f8fafc;
+      padding: 12px 18px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+    }
+    .meta-item {
+      font-size: 12px;
+    }
+    .meta-label {
+      color: #94a3b8;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.03em;
+    }
+    .meta-val {
+      font-weight: 700;
+      color: #334155;
+      word-break: break-all;
+    }
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1e293b;
+      margin-top: 40px;
+      margin-bottom: 15px;
+      border-left: 4px solid #4f46e5;
+      padding-left: 10px;
+      page-break-after: avoid;
+    }
+    .summary-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 20px;
+      font-size: 14px;
+      color: #334155;
+      white-space: pre-wrap;
+    }
+    .verdict-banner {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin: 25px 0;
+      padding: 20px;
+      background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+      border: 1px solid #c084fc;
+      border-radius: 12px;
+      page-break-inside: avoid;
+    }
+    .score-circle {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 4px solid #7c3aed;
+      color: #7c3aed;
+      font-weight: 800;
+      font-size: 22px;
+      box-shadow: 0 4px 10px rgba(124, 58, 237, 0.1);
+      flex-shrink: 0;
+    }
+    .score-circle-label {
+      font-size: 8px;
+      text-transform: uppercase;
+      color: #94a3b8;
+      font-weight: 700;
+      margin-top: -2px;
+    }
+    .verdict-info {
+      flex: 1;
+    }
+    .verdict-headline {
+      font-size: 16px;
+      font-weight: 800;
+      color: #581c87;
+      margin-bottom: 4px;
+    }
+    .verdict-description {
+      font-size: 13px;
+      color: #6b21a8;
+    }
+    .action-plan-list {
+      margin: 0;
+      padding: 0;
+      list-style-type: none;
+    }
+    .action-plan-item {
+      display: flex;
+      gap: 15px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 12px;
+      page-break-inside: avoid;
+    }
+    .action-number {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #4f46e5;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    .action-content {
+      flex: 1;
+    }
+    .action-item-title {
+      font-weight: 700;
+      color: #1e293b;
+      font-size: 13px;
+      margin-bottom: 2px;
+    }
+    .action-item-desc {
+      color: #475569;
+      font-size: 13px;
+    }
+    .risk-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      overflow: hidden;
+      page-break-inside: avoid;
+    }
+    .risk-card.critical { border-left: 6px solid #ef4444; }
+    .risk-card.high     { border-left: 6px solid #f97316; }
+    .risk-card.medium   { border-left: 6px solid #f59e0b; }
+    .risk-card.low      { border-left: 6px solid #10b981; }
+    
+    .risk-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .risk-loc {
+      font-size: 12px;
+      font-weight: 700;
+      color: #475569;
+    }
+    .risk-level-badge {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 20px;
+      letter-spacing: 0.05em;
+    }
+    .risk-level-badge.critical { background: #fee2e2; color: #b91c1c; }
+    .risk-level-badge.high     { background: #ffedd5; color: #c2410c; }
+    .risk-level-badge.medium   { background: #fef3c7; color: #b45309; }
+    .risk-level-badge.low      { background: #dcfce7; color: #15803d; }
+    
+    .risk-card-body {
+      padding: 20px;
+    }
+    .risk-desc {
+      font-size: 14px;
+      color: #1e293b;
+      margin-bottom: 15px;
+      font-weight: 500;
+    }
+    .risk-meta-box {
+      margin-top: 12px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+    .risk-recommendation {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+    }
+    .risk-precedent {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      color: #475569;
+      font-style: italic;
+      margin-top: 10px;
+    }
+    .box-title {
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+    .box-title.rec { color: #15803d; }
+    .box-title.prec { color: #64748b; }
+    
+    .clause-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 15px;
+      page-break-inside: avoid;
+    }
+    .clause-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #64748b;
+    }
+    .clause-type-badge {
+      background: #f1f5f9;
+      color: #475569;
+      padding: 2px 8px;
+      border-radius: 4px;
+      text-transform: capitalize;
+    }
+    .clause-summary {
+      font-weight: 500;
+      color: #1e293b;
+      margin-bottom: 10px;
+    }
+    .clause-text {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #475569;
+      white-space: pre-wrap;
+      font-family: monospace;
+    }
+    .footer {
+      margin-top: 60px;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 20px;
+      font-size: 11px;
+      color: #94a3b8;
+      text-align: center;
+      page-break-inside: avoid;
+    }
+    
+    @media print {
+      body {
+        padding: 20px;
+      }
+      .page-break {
+        page-break-before: always;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-title-row">
+      <div class="brand">eContract AI</div>
+      <div class="report-badge">Risk Audit Report</div>
+    </div>
+    
+    <div class="meta-grid">
+      <div class="meta-item">
+        <div class="meta-label">Contract Document</div>
+        <div class="meta-val">${escapeHtml(window.__lastReportFilename || 'Contract Document')}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Analysis Date</div>
+        <div class="meta-val">${dateStr}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Total Clauses</div>
+        <div class="meta-val">${report.clauses?.length ?? 0} indexed</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Risk Flags</div>
+        <div class="meta-val">${risks.length} issues</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="verdict-banner">
+    <div class="score-circle">
+      <span>${riskScore}</span>
+      <span class="score-circle-label">Risk</span>
+    </div>
+    <div class="verdict-info">
+      <div class="verdict-headline">${escapeHtml(verdictTitle)}</div>
+      <div class="verdict-description">${escapeHtml(verdictSub)}</div>
+    </div>
+  </div>
+
+  <div class="section-title">Executive Summary</div>
+  <div class="summary-box">${formatSummary(report.summary)}</div>
+
+  ${risks.length ? `
+    <div class="section-title">Negotiation Action Plan</div>
+    <div class="action-plan-list">
+      ${actionPlanHtml}
+    </div>
+    
+    <div class="page-break"></div>
+    
+    <div class="section-title">Detailed Risk Liability Flags</div>
+    <div class="risks-list">
+      ${risksHtml}
+    </div>
+  ` : ''}
+
+  ${(report.clauses ?? []).length ? `
+    <div class="page-break"></div>
+    <div class="section-title">Clause-by-Clause Index</div>
+    <div class="clauses-list">
+      ${clausesHtml}
+    </div>
+  ` : ''}
+
+  <div class="footer">
+    ${escapeHtml(disclaimerText)}
+    <br><br>
+    Generated by eContract AI. Confidential legal audit document.
+  </div>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        window.print();
+      }, 600);
+    });
+  </script>
+</body>
+</html>
+  `;
+}
+
 window.printReport = function() {
-  window.print()
+  const r = window.__lastReport;
+  if (!r) return;
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    alert('Popup blocker active. Please allow popups for eContract AI to generate the print report.');
+    return;
+  }
+  const html = generatePrintDocument(r);
+  printWindow.document.write(html);
+  printWindow.document.close();
 }
 
 // ── Clause groups accordions ───────────────────────────────────────────────────
@@ -863,8 +1431,7 @@ window.downloadReportJSON = function () {
 window.copyReportSummary = function () {
   if (!window.__lastReport?.summary) return
   navigator.clipboard.writeText(window.__lastReport.summary).then(() => {
-    setStatus('Summary outline copied to clipboard.')
-    setTimeout(() => setStatus(''), 2000)
+    showToast('Summary outline copied to clipboard.')
   })
 }
 
@@ -894,8 +1461,7 @@ window.copyMarkdownReport = function () {
     `*${r.disclaimer}*`,
   ]
   navigator.clipboard.writeText(lines.join('\n')).then(() => {
-    setStatus('Markdown format report copied to clipboard.')
-    setTimeout(() => setStatus(''), 2500)
+    showToast('Markdown report copied to clipboard.')
   })
 }
 
@@ -957,6 +1523,7 @@ window.viewLocalReport = async function (id) {
     const entries = await HistoryDB.list()
     const entry = entries.find(e => e.id === id)
     if (!entry?.report) { setStatus('Session data entry reference was not found in browser storage.', true); return }
+    window.__lastReportFilename = entry.filename
     renderReport(entry.report)
     setStatus('Viewing saved audit layout from local history.')
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -986,6 +1553,35 @@ window.deleteLocalReport = async function (id) {
     await HistoryDB.remove(id)
     loadHistory()
   } catch {}
+}
+
+window.showToast = function(message, type = 'success') {
+  const container = document.getElementById('toast-container') || (() => {
+    const c = document.createElement('div')
+    c.id = 'toast-container'
+    c.style.cssText = 'position:fixed; bottom:24px; right:24px; z-index:9999; display:flex; flex-direction:column; gap:10px; pointer-events:none;'
+    document.body.appendChild(c)
+    return c
+  })()
+
+  const toast = document.createElement('div')
+  toast.className = `toast toast-${type}`
+  toast.innerHTML = `
+    <span class="toast-icon">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    </span>
+    <span class="toast-message">${escapeHtml(message)}</span>
+  `
+  container.appendChild(toast)
+
+  setTimeout(() => {
+    toast.style.animation = 'toastOut 0.25s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards'
+    toast.addEventListener('animationend', () => {
+      toast.remove()
+    })
+  }, 2500)
 }
 
 // ── Progress helpers ───────────────────────────────────────────────────────────

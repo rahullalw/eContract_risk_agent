@@ -9,10 +9,11 @@ export async function riskScore(
   if (clauses.length === 0) return []
 
   const systemPrompt = `You are a contract risk analyst.
-Return ONLY valid JSON: { "risks": [ { "clauseId": string, "sectionId": string, "pageNumber": number, "level": string, "description": string, "precedent": string|null, "recommendation": string } ] }
+Return ONLY valid JSON: { "risks": [ { "clauseId": string, "sectionId": string, "pageNumber": number, "level": string, "description": string, "precedent": string, "recommendation": string } ] }
 Rules:
 - level: one of critical, high, medium, low.
 - sectionId and pageNumber MUST match the input exactly.
+- precedent: REQUIRED. Always provide a short (1-2 sentence) industry-standard benchmark clause or phrasing that represents best-practice protection for this clause type. Never return null.
 - description ≤ 400 chars. recommendation ≤ 300 chars.
 - Jurisdiction: ${jurisdiction}.`
 

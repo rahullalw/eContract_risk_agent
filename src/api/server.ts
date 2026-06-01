@@ -4,6 +4,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { analyzeRouter } from './analyzeRoute.js'
 import { jobsRouter } from './jobsRoute.js'
+import { sampleRouter } from './sampleRoute.js'
 
 const app  = express()
 const PORT = Number(process.env.PORT ?? 3000)
@@ -12,6 +13,11 @@ const publicDir = path.resolve(__dirname, '../../public')
 
 app.use(express.json())
 app.use(express.static(publicDir))
+
+// Serve sample NDA for quick-try onboarding
+app.get('/sample-nda.pdf', (_req, res) => {
+  res.sendFile(path.resolve(__dirname, '../../sample-nda.pdf'))
+})
 
 app.use((_req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -34,6 +40,7 @@ app.get('/health', (_req, res) => {
 
 app.use('/api', analyzeRouter)
 app.use('/api', jobsRouter)
+app.use('/api', sampleRouter)
 
 app.listen(PORT, () => {
   const mem = process.memoryUsage()
